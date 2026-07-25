@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>jobs.forkstech.com — technical specification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9ECE8;
+  --surface:#F8F9F7;
+  --sunk:#DFE4DF;
+  --ink:#151C20;
+  --ink-2:#3E4A50;
+  --ink-3:#717C82;
+  --rule:#CBD2CC;
+  --rule-soft:#DCE1DC;
+  --pass:#0D6B52;
+  --pass-bg:#DBEDE5;
+  --cut:#94381F;
+  --cut-bg:#F2E3DD;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#12171A;--surface:#1A2126;--sunk:#232B30;
+    --ink:#E4E9E6;--ink-2:#AFBABE;--ink-3:#7E8A8F;
+    --rule:#313B41;--rule-soft:#252E33;
+    --pass:#5DCAA5;--pass-bg:#12332A;
+    --cut:#E08D74;--cut-bg:#3A211A;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--body);font-size:17px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--pass);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--pass) 35%,transparent)}
+a:hover{border-bottom-color:var(--pass)}
+:focus-visible{outline:2px solid var(--pass);outline-offset:3px;border-radius:2px}
+
+.shell{display:grid;grid-template-columns:1fr;max-width:1180px;margin:0 auto;padding:0 24px}
+@media(min-width:1080px){.shell{grid-template-columns:186px minmax(0,1fr);gap:56px;padding:0 40px}}
+
+/* ---------- rail ---------- */
+.rail{display:none}
+@media(min-width:1080px){
+  .rail{display:block;position:sticky;top:0;align-self:start;height:100vh;padding-top:96px;overflow-y:auto}
+  .rail ol{list-style:none;margin:0;padding:0}
+  .rail li{margin-bottom:3px}
+  .rail a{
+    display:flex;gap:9px;font-family:var(--mono);font-size:11.5px;letter-spacing:.01em;
+    color:var(--ink-3);border:0;padding:3px 0;line-height:1.45;
+  }
+  .rail a:hover{color:var(--ink)}
+  .rail a .n{color:var(--rule);flex:none}
+  .rail a.on{color:var(--ink)}
+  .rail a.on .n{color:var(--pass)}
+}
+
+/* ---------- masthead ---------- */
+.mast{padding:88px 0 0}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin:0 0 22px}
+.mast h1{
+  font-family:var(--display);font-weight:700;font-size:clamp(38px,6.6vw,68px);
+  line-height:.98;letter-spacing:-.028em;margin:0 0 20px;max-width:15ch;
+}
+.mast .lede{font-size:20px;line-height:1.55;color:var(--ink-2);max-width:60ch;margin:0 0 34px}
+.factbar{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:8px;
+}
+.factbar div{background:var(--surface);padding:13px 15px}
+.factbar dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0 0 5px}
+.factbar dd{margin:0;font-family:var(--mono);font-size:13px;color:var(--ink)}
+
+/* ---------- sections ---------- */
+section{padding:60px 0;border-top:1px solid var(--rule-soft);scroll-margin-top:24px}
+section:first-of-type{border-top:0}
+h2{
+  font-family:var(--display);font-weight:700;font-size:clamp(25px,3.4vw,34px);
+  letter-spacing:-.02em;line-height:1.12;margin:0 0 8px;max-width:22ch;
+}
+h2 .num{font-family:var(--mono);font-weight:400;font-size:13px;letter-spacing:.06em;color:var(--pass);display:block;margin-bottom:12px}
+h3{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.008em;margin:38px 0 10px;color:var(--ink)}
+h4{font-family:var(--mono);font-weight:500;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:30px 0 10px}
+p{margin:0 0 16px;max-width:68ch}
+ul,ol{max-width:68ch;padding-left:20px;margin:0 0 16px}
+li{margin-bottom:7px}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.855em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+.sub{color:var(--ink-2);font-size:18px;max-width:64ch;margin-bottom:26px}
+
+/* ---------- funnel signature ---------- */
+.funnel{border:1px solid var(--rule);background:var(--surface);padding:26px 24px 20px;margin:30px 0 8px}
+.fn-row{display:grid;grid-template-columns:118px minmax(0,1fr) 74px;align-items:center;gap:14px;margin-bottom:11px}
+.fn-row:last-of-type{margin-bottom:0}
+.fn-label{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.fn-track{height:26px;background:var(--sunk)}
+.fn-bar{height:100%;background:var(--pass);opacity:.24}
+.fn-row.keep .fn-bar{opacity:.85}
+.fn-count{font-family:var(--mono);font-size:14px;color:var(--ink)}
+.fn-note{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:18px 0 0;padding-top:14px;border-top:1px solid var(--rule-soft)}
+@media(max-width:620px){.fn-row{grid-template-columns:88px minmax(0,1fr) 60px;gap:9px}.fn-label{font-size:10px}}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:20px 0 24px;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;min-width:520px;background:var(--surface)}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top;font-size:14px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--sunk);border-bottom:1px solid var(--rule)}
+tr:last-child td{border-bottom:0}
+td.m,th.m{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+
+/* ---------- code ---------- */
+pre{
+  background:var(--surface);border:1px solid var(--rule);padding:17px 19px;
+  overflow-x:auto;margin:16px 0 24px;font-size:12.8px;line-height:1.62;
+}
+pre code{background:none;padding:0;font-size:inherit;color:var(--ink-2)}
+
+/* ---------- callouts ---------- */
+.note{border-left:3px solid var(--pass);background:var(--pass-bg);padding:15px 19px;margin:22px 0;max-width:70ch}
+.note.warn{border-left-color:var(--cut);background:var(--cut-bg)}
+.note p{margin:0;font-size:15.5px;max-width:none}
+.note p+p{margin-top:10px}
+.note .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;color:var(--pass)}
+.note.warn .tag{color:var(--cut)}
+
+/* ---------- phase cards ---------- */
+.phases{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:24px 0}
+@media(min-width:760px){.phases{grid-template-columns:1fr 1fr}}
+.phase{background:var(--surface);padding:19px 21px}
+.phase .p-n{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--pass);margin:0 0 7px}
+.phase h3{margin:0 0 8px;font-size:17px}
+.phase p{font-size:14.5px;margin:0 0 10px;color:var(--ink-2)}
+.phase ul{font-size:14px;margin:0;padding-left:18px;color:var(--ink-2)}
+.phase li{margin-bottom:4px}
+.phase .done{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:block;margin-top:11px;padding-top:10px;border-top:1px solid var(--rule-soft)}
+
+/* ---------- misc ---------- */
+.split{display:grid;gap:26px;margin:22px 0}
+@media(min-width:760px){.split{grid-template-columns:1fr 1fr;gap:38px}}
+.split h4{margin-top:0}
+.split ul{margin:0}
+footer{padding:52px 0 88px;border-top:1px solid var(--rule);margin-top:34px}
+footer p{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);max-width:none}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="rail" aria-label="Sections">
+  <ol id="rail">
+    <li><a href="#s01"><span class="n">01</span><span>Purpose</span></a></li>
+    <li><a href="#s02"><span class="n">02</span><span>Funnel</span></a></li>
+    <li><a href="#s03"><span class="n">03</span><span>Architecture</span></a></li>
+    <li><a href="#s04"><span class="n">04</span><span>Data model</span></a></li>
+    <li><a href="#s05"><span class="n">05</span><span>Source layer</span></a></li>
+    <li><a href="#s06"><span class="n">06</span><span>Discovery</span></a></li>
+    <li><a href="#s07"><span class="n">07</span><span>Filters</span></a></li>
+    <li><a href="#s08"><span class="n">08</span><span>Scoring</span></a></li>
+    <li><a href="#s09"><span class="n">09</span><span>API</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>Dashboard</span></a></li>
+    <li><a href="#s11"><span class="n">11</span><span>Deployment</span></a></li>
+    <li><a href="#s12"><span class="n">12</span><span>Infrastructure</span></a></li>
+    <li><a href="#s13"><span class="n">13</span><span>Build phases</span></a></li>
+    <li><a href="#s14"><span class="n">14</span><span>Risks</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="mast">
+  <p class="eyebrow">Technical specification · v0.12 draft</p>
+  <h1>A job pipeline that ends at three.</h1>
+  <p class="lede">An agent that polls applicant tracking systems directly, discovers new companies on its own, and narrows roughly twelve hundred daily posting rows down to no more than three worth a focused application.</p>
+  <dl class="factbar">
+    <div><dt>Host</dt><dd>jobs.forkstech.com</dd></div>
+    <div><dt>Runtime</dt><dd>FastAPI · Postgres 16</dd></div>
+    <div><dt>Infra</dt><dd>forkstech VPS · NPM · Authelia</dd></div>
+    <div><dt>Owner</dt><dd>Single user, gated</dd></div>
+    <div><dt>Prior art</dt><dd>Selective reuse</dd></div>
+  </dl>
+</header>
+
+<!-- 01 -->
+<section id="s01">
+  <h2><span class="num">01</span>What this is for</h2>
+  <p class="sub">The problem isn't finding job postings. It's that finding good ones costs an hour a day of attention that should go into the applications themselves.</p>
+
+  <p>Job boards optimise for volume and re-listing. A human reading them spends most of their time rejecting: wrong seniority, fake remote, agency repost, already seen last Tuesday. That rejection work is mechanical and legible, which makes it a good candidate for automation. The judgement work — is this company worth a tailored application, and what should the application say — is not, and stays with the human.</p>
+
+  <p>So the system does three things: it collects postings from sources that return structured data, it rejects aggressively, and it hands over a short daily queue with enough research attached that writing the application is fast.</p>
+
+  <h3>Goals</h3>
+  <ul>
+    <li>Produce a daily queue of zero to three remote product, program, or technical program management roles, ranked, with the canonical corporate application URL for each. Empty is a valid answer.</li>
+    <li>Attach a gap analysis to every queued role: what the posting asks for that the current résumé doesn't surface.</li>
+    <li>Attach a company research payload so the application can open with something specific rather than generic.</li>
+    <li>Grow its own company registry over time, so coverage compounds instead of resetting each run.</li>
+    <li>Track application outcomes, so the scoring can eventually be calibrated against what actually converted.</li>
+  </ul>
+
+  <h3>Non-goals</h3>
+  <ul>
+    <li><strong>No automated submission.</strong> The system prepares; the human applies. Several ATS platforms detect programmatic submission, and templated applications lose the only real edge at this end of the market.</li>
+    <li><strong>No LinkedIn or Indeed.</strong> Deliberately out of scope, both as sources and as destinations.</li>
+    <li><strong>No automated résumé generation in v1.</strong> V1 imports, validates, and versions the existing portfolio PDF as the active base résumé. Product, program, and technical variants remain reviewed candidate artifacts; generating or rewriting them automatically is deferred.</li>
+    <li><strong>No public listings.</strong> This is a single-user tool, not a job board.</li>
+    <li><strong>No email or outreach automation.</strong> Warm outreach stays manual and human. This governs contact with companies — a daily self-notification of the frozen queue is in scope.</li>
+  </ul>
+</section>
+
+<!-- 02 -->
+<section id="s02">
+  <h2><span class="num">02</span>The funnel</h2>
+  <p class="sub">Every stage exists to make the next stage cheaper. Reject with regex before rejecting with a model.</p>
+
+  <div class="funnel">
+    <div class="fn-row"><span class="fn-label">Fetched</span><span class="fn-track"><span class="fn-bar" style="width:100%"></span></span><span class="fn-count">~1,200</span></div>
+    <div class="fn-row"><span class="fn-label">New / changed</span><span class="fn-track"><span class="fn-bar" style="width:34%"></span></span><span class="fn-count">~20–80</span></div>
+    <div class="fn-row"><span class="fn-label">Hard filters</span><span class="fn-track"><span class="fn-bar" style="width:20%"></span></span><span class="fn-count">~5–25</span></div>
+    <div class="fn-row"><span class="fn-label">Triage</span><span class="fn-track"><span class="fn-bar" style="width:12%"></span></span><span class="fn-count">~3–20</span></div>
+    <div class="fn-row keep"><span class="fn-label">Deep scored</span><span class="fn-track"><span class="fn-bar" style="width:12%"></span></span><span class="fn-count">0–20</span></div>
+    <div class="fn-row keep"><span class="fn-label">Queued</span><span class="fn-track"><span class="fn-bar" style="width:3%"></span></span><span class="fn-count">0–3</span></div>
+    <p class="fn-note">Steady-state design hypothesis for roughly 400 active companies. The first backfill is a different workload, and a single consultancy Workday tenant can add hundreds of fetched rows and minutes of polite fetch time — a postings_seen jump after seeding is expected, not a bug. Real counts replace these estimates after two weeks.</p>
+  </div>
+
+  <p>Three cost boundaries matter. An unchanged posting stops after its hash is checked, nothing new reaches a model until deterministic filters have run, and nothing reaches the strong model until the fast one has voted. The deep-scoring stage sees at most twenty postings a day, which is small enough to spend real tokens on — full posting text, a versioned résumé, cited company research, and a structured rubric.</p>
+
+  <div class="note">
+    <span class="tag">Design note</span>
+    <p>The queue is capped at three even when more score well, and zero is a valid result. The constraint is deliberate: opportunity quality and application quality matter more than throughput. A backlog of forty "good" roles is functionally the same as no queue at all. Overflow stays ranked in the pool; an unreviewed queued role may carry forward for at most three days, then expires rather than repeating forever.</p>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="s03">
+  <h2><span class="num">03</span>Architecture</h2>
+  <p class="sub">One FastAPI service, one Postgres, one idempotent daily workflow. No queue broker until there's a reason for one.</p>
+
+  <pre><code>┌─ scheduler trigger (03:00) ─────────────────────────────────┐
+│  acquire Postgres advisory lock                              │
+│  create pipeline_run                                         │
+│  discovery → ingest → reconcile → filter → triage → deep     │
+│                                      → freeze daily_digest    │
+│  persist every completed step; release lock                  │
+└───────────────────────────────────────────────────────────────┘
+                │
+      ┌─────────┴──────────┐
+      │                    │
+  sources/            pipeline/
+   ├ ats/               ├ dedupe.py      exact hash + pgvector
+   │  ├ greenhouse.py   ├ filters.py     deterministic rules
+   │  ├ lever.py        ├ triage.py      configurable fast model
+   │  ├ ashby.py        ├ deep.py        configurable strong model
+   │  ├ workday.py      └ research.py    cited company enrichment
+   │  ├ workable.py        workflow/     step orchestration
+   │  ├ smartrecruiters.py
+   │  └ recruitee.py
+   ├ feeds/            api/              FastAPI routers
+   │  ├ wwr_rss.py     web/              Jinja2 + HTMX
+   │  └ remoteok.py
+   └ scrape/
+      └ scrapling_source.py   fallback tier only
+
+  Postgres 16 + pgvector  ·  Docker Compose  ·  isolated jobs_ingress</code></pre>
+
+  <p>The trigger may run in-process because the workload is one daily workflow on a single-user system, but correctness does not depend on the clock. The daily trigger is 03:00 in <code>America/Anchorage</code>, deliberately outside Alaska's daylight-saving gap, and <code>digest_on</code> dates are defined in the same zone so "today" never wobbles across server timezone or DST changes. A lightweight hourly reconciliation after 03:00 checks whether today's digest exists and starts one catch-up run when it does not. A <code>pipeline_run</code> records step state, every step is safe to retry, and a Postgres advisory lock prevents the scheduled trigger, reconciliation, startup catch-up, or a manual request from running the workflow twice. If ingest ever outgrows a single process, the natural split is a worker container claiming <code>pipeline_run</code> steps, not a broker.</p>
+
+  <h3>Component responsibilities</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Module</th><th>Owns</th><th>Must not</th></tr></thead>
+    <tbody>
+      <tr><td class="m">sources/ats</td><td>One adapter per ATS. Normalises vendor JSON to <code>RawPosting</code>.</td><td>Filter, score, or write to <code>posting</code> directly.</td></tr>
+      <tr><td class="m">sources/feeds</td><td>RSS and JSON feeds. Primarily a discovery input, not a listings input.</td><td>Be trusted for apply URLs.</td></tr>
+      <tr><td class="m">sources/scrape</td><td>Scrapling fallback for boards without feeds.</td><td>Carry more than ~15% of volume.</td></tr>
+      <tr><td class="m">pipeline/filters</td><td>All deterministic rejection. Pure functions, unit tested.</td><td>Call any model or network.</td></tr>
+      <tr><td class="m">pipeline/deep</td><td>Rubric scoring, gap analysis, hooks.</td><td>Decide queue membership — that's <code>digest</code>.</td></tr>
+      <tr><td class="m">workflow</td><td>Run ordering, retries, locks, and persisted step state.</td><td>Contain source-specific or scoring logic.</td></tr>
+      <tr><td class="m">api</td><td>Read the queue, record outcomes, trigger runs.</td><td>Contain pipeline logic.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Prior-art strategy</h3>
+  <p>Start with a clean repository and schema. Port proven pieces from Far Reach Jobs — the Workday adapter, robots handling, Scrapling wrapper, deployment and backup patterns, and relevant tests — but do not inherit its MySQL migrations, authentication utilities, public-user flows, Alaska-specific data model, or generic-source administration. Authentication belongs to the existing Authelia boundary, not this application. This is selective reuse, not a wholesale fork.</p>
+</section>
+
+<!-- 04 -->
+<section id="s04">
+  <h2><span class="num">04</span>Data model</h2>
+  <p class="sub">Companies are durable, ATS endpoints change, and every judgement must be reproducible from the exact inputs that produced it.</p>
+
+  <pre><code>create extension if not exists vector;
+
+create table company (
+  id               bigserial primary key,
+  name             text not null,
+  canonical_domain text unique,
+  careers_url      text,
+  one_liner        text,
+  blocked          boolean not null default false,
+  active           boolean not null default true,
+  created_at       timestamptz not null default now()
+);
+
+create table source_endpoint (
+  id               bigserial primary key,
+  company_id       bigint not null references company(id) on delete restrict,
+  kind             text not null check (kind in (
+                     'greenhouse','lever','ashby','workday','workable',
+                     'smartrecruiters','recruitee','custom')),
+  token            text not null,
+  region           text not null default 'global', -- e.g. Lever EU
+  base_url         text,
+  status           text not null default 'active' check (status in (
+                     'active','paused','failing','retired')),
+  discovered_at    timestamptz not null default now(),
+  last_success_at  timestamptz,
+  consecutive_failures int not null default 0,
+  retired_at       timestamptz,
+  unique (kind, token, region)
+);
+
+create table discovery_event (
+  id             bigserial primary key,
+  company_id     bigint not null references company(id) on delete cascade,
+  endpoint_id    bigint references source_endpoint(id) on delete set null,
+  discovered_via text not null,          -- 'hn:2026-07', 'seed', 'manual'
+  evidence_url   text,
+  discovered_at  timestamptz not null default now()
+);</code></pre>
+
+  <pre><code>create table pipeline_run (
+  id            bigserial primary key,
+  run_kind      text not null check (run_kind in (
+                  'daily','manual','discovery','backfill')),
+  status        text not null check (status in (
+                  'running','succeeded','partial','failed')),
+  config_version text not null,
+  last_completed_step text,
+  counts        jsonb not null default '{}'::jsonb,  -- funnel + tokens, searches, cost per stage
+  error         jsonb,
+  started_at    timestamptz not null default now(),
+  finished_at   timestamptz
+);
+
+create table source_fetch (
+  id            bigserial primary key,
+  run_id        bigint not null references pipeline_run(id) on delete cascade,
+  endpoint_id   bigint not null references source_endpoint(id) on delete restrict,
+  status        text not null check (status in ('complete','incomplete','failed')),
+  http_status   int,
+  postings_seen int not null default 0,
+  postings_new  int not null default 0,
+  postings_changed int not null default 0,
+  etag          text,
+  last_modified text,
+  error         jsonb,
+  started_at    timestamptz not null default now(),
+  finished_at   timestamptz,
+  unique (run_id, endpoint_id)
+);</code></pre>
+
+  <pre><code>create table posting (
+  id                 bigserial primary key,
+  company_id         bigint not null references company(id) on delete restrict,
+  source_endpoint_id bigint not null references source_endpoint(id) on delete restrict,
+  external_id        text not null,
+  title              text not null,
+  title_norm         text not null,
+  locations          jsonb not null default '[]'::jsonb,
+  is_remote          boolean,
+  remote_scope       text,              -- 'us' | 'global' | 'regional' | 'unclear'
+  remote_evidence    jsonb,
+  department         text,
+  posting_url        text not null,
+  apply_url          text not null,
+  source_published_at timestamptz,
+  source_updated_at   timestamptz,
+  first_seen_at      timestamptz not null default now(),
+  last_seen_at       timestamptz not null default now(),
+  closed_at          timestamptz,
+  duplicate_of_id    bigint references posting(id) on delete set null,
+  unique (source_endpoint_id, external_id)
+);
+
+create index posting_last_seen_idx on posting (last_seen_at desc);
+create index posting_open_idx on posting (closed_at) where closed_at is null;
+
+create table posting_version (
+  id             bigserial primary key,
+  posting_id     bigint not null references posting(id) on delete cascade,
+  observed_in_run_id bigint not null references pipeline_run(id) on delete restrict,
+  content_hash   text not null,
+  title          text not null,
+  locations      jsonb not null default '[]'::jsonb,
+  description_md text,
+  raw_payload    jsonb not null,
+  embedding      vector(1024),      -- voyage-4, output_dimension=1024
+  embedding_model text,             -- exact model ID; one active model at a time
+  observed_at    timestamptz not null default now(),
+  unique (posting_id, content_hash)
+);
+
+create index posting_version_lookup_idx
+  on posting_version (posting_id, observed_at desc);
+create index posting_version_embed_idx on posting_version
+  using hnsw (embedding vector_cosine_ops);</code></pre>
+
+  <pre><code>create table resume_version (
+  id                   bigserial primary key,
+  variant              text not null check (variant in (
+                         'base','product','program','technical')),
+  source_kind          text not null check (source_kind in (
+                         'portfolio_pdf','manual','n8n')),
+  source_url           text,
+  source_sha256        text,             -- raw source bytes, when applicable
+  source_etag          text,
+  source_last_modified timestamptz,
+  source_fetched_at    timestamptz,
+  parent_resume_version_id bigint references resume_version(id) on delete restrict,
+  content_hash         text not null unique, -- normalized extracted Markdown
+  content_md           text not null,
+  active               boolean not null default false,
+  created_at           timestamptz not null default now(),
+  check (
+    source_kind &lt;&gt; 'portfolio_pdf'
+    or (variant = 'base' and source_url is not null and source_sha256 is not null)
+  ),
+  check (
+    source_kind &lt;&gt; 'n8n' or parent_resume_version_id is not null
+  )
+);
+
+create table candidate_profile_version (
+  id           bigserial primary key,
+  content_hash text not null unique,
+  location     jsonb not null,       -- city, ISO-3166 country, ISO-3166-2 region
+  active       boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+
+create unique index resume_version_one_active_per_variant
+  on resume_version (variant) where active;
+create unique index candidate_profile_one_active
+  on candidate_profile_version (active) where active;
+
+create table company_research (
+  id                      bigserial primary key,
+  company_id              bigint not null references company(id) on delete cascade,
+  run_id                  bigint not null references pipeline_run(id) on delete restrict,
+  content_hash            text not null,
+  model_id                text not null,
+  prompt_version          text not null,
+  web_search_tool_version text not null,
+  payload                 jsonb not null,
+  source_urls             jsonb not null default '[]'::jsonb,
+  usage                   jsonb not null default '{}'::jsonb,
+  researched_at           timestamptz not null default now(),
+  unique (company_id, content_hash)
+);
+
+create table score (
+  id                  bigserial primary key,
+  run_id              bigint not null references pipeline_run(id) on delete restrict,
+  posting_version_id  bigint not null references posting_version(id) on delete cascade,
+  resume_version_id   bigint references resume_version(id) on delete restrict,
+  candidate_profile_version_id bigint references candidate_profile_version(id) on delete restrict,
+  company_research_id bigint references company_research(id) on delete restrict,
+  stage               text not null check (stage in ('filter','triage','deep')),
+  model_id            text,             -- exact provider snapshot, never "latest"
+  prompt_version      text,
+  ruleset_version     text,
+  rubric_version      text,
+  input_hash          text not null,
+  overall             numeric(5,2),
+  domain_fit          numeric(4,2),
+  seniority_fit       numeric(4,2),
+  remote_fit          numeric(4,2),
+  company_fit         numeric(4,2),
+  axis_notes          jsonb,
+  verdict             text check (verdict in ('apply','maybe','skip')),
+  location_eligibility jsonb,          -- eligible | ineligible | unclear + quoted evidence
+  rationale           text,
+  gaps                jsonb,
+  hooks               jsonb,
+  red_flags           jsonb,
+  resume_variant      text,
+  reject_reasons      jsonb,            -- all matching rules, not first only
+  scored_at           timestamptz not null default now(),
+  constraint deep_score_version_inputs check (
+    stage &lt;&gt; 'deep' or (
+      resume_version_id is not null
+      and candidate_profile_version_id is not null
+      and company_research_id is not null
+    )
+  ),
+  constraint deep_score_location_status check (
+    stage &lt;&gt; 'deep' or (
+      location_eligibility is not null
+      and location_eligibility -&gt;&gt; 'status' in ('eligible','ineligible','unclear')
+    )
+  ),
+  unique (posting_version_id, stage, input_hash)
+);
+
+create index score_lookup_idx
+  on score (posting_version_id, stage, scored_at desc);</code></pre>
+
+  <pre><code>create table daily_digest (
+  id         bigserial primary key,
+  digest_on  date not null unique,
+  run_id     bigint not null references pipeline_run(id) on delete restrict,
+  frozen_at  timestamptz not null default now()
+);
+
+create table digest_item (
+  id          bigserial primary key,
+  digest_id   bigint not null references daily_digest(id) on delete cascade,
+  posting_id  bigint not null references posting(id) on delete restrict,
+  score_id    bigint not null references score(id) on delete restrict,
+  rank        int not null check (rank between 1 and 3),
+  state       text not null default 'recommended' check (state in (
+                'recommended','skipped','applied','expired','restored')),
+  carry_until date,
+  skip_reason text,
+  unique (digest_id, rank),
+  unique (digest_id, posting_id)
+);
+
+create table application (
+  id               bigserial primary key,
+  posting_id       bigint not null unique references posting(id) on delete restrict,
+  origin           text not null check (origin in ('digest','manual')),
+  source_digest_item_id bigint references digest_item(id) on delete restrict,
+  current_status   text not null default 'applied' check (current_status in (
+                     'applied','screen','interview','offer',
+                     'rejected','ghosted','withdrawn')),
+  resume_version_id bigint references resume_version(id) on delete restrict,
+  applied_at       timestamptz not null,
+  notes            text,
+  last_activity_at timestamptz,
+  check (
+    (origin = 'digest' and source_digest_item_id is not null) or
+    (origin = 'manual' and source_digest_item_id is null)
+  )
+);
+
+create table application_event (
+  id             bigserial primary key,
+  application_id bigint not null references application(id) on delete cascade,
+  from_status    text,
+  to_status      text not null,
+  note           text,
+  occurred_at    timestamptz not null default now()
+);</code></pre>
+
+  <p>A company can have many historical endpoints; an endpoint can fail or retire without erasing the company. A posting version preserves the exact body and raw vendor payload used by a score, and a candidate-profile version preserves the exact location used for state-eligibility judgement. Unactioned, closed postings are eligible for retention cleanup, but anything queued, skipped, or applied remains available for audit.</p>
+
+  <p>At startup, <code>CANDIDATE_CITY</code>, <code>CANDIDATE_REGION</code>, and <code>CANDIDATE_COUNTRY</code> are normalized and upserted by content hash; a changed location creates a new active <code>candidate_profile_version</code> instead of mutating the old one. Activation is one transaction that deactivates the prior row before inserting or activating its replacement. The partial unique indexes make single-active a constraint rather than a convention — one active profile, one active résumé per variant. Filter and triage scores may omit those foreign keys, but every deep score requires both and includes them in <code>input_hash</code>.</p>
+
+  <h3>Candidate résumé source</h3>
+  <p>The canonical public candidate reference is <a href="https://michaelbuckingham.org">michaelbuckingham.org</a>. Its current résumé is published as a PDF at <a href="https://michaelbuckingham.org/michael-buckingham-resume.pdf">michael-buckingham-resume.pdf</a> and is the source of truth for the active <code>base</code> résumé in v1. The portfolio HTML is a reference link, not an unversioned model input; project or biography content enters scoring only if it is deliberately imported into a versioned candidate artifact.</p>
+
+  <p>At bootstrap and before each scheduled run, résumé sync performs a bounded conditional HTTPS fetch using the stored <code>ETag</code> and <code>Last-Modified</code> values, requires a successful PDF response no larger than 10 MB, hashes the raw bytes with SHA-256, extracts and normalizes the text to Markdown, and rejects empty or obviously incomplete extraction. The first valid import may activate automatically when no active base résumé exists. A later normalized-text change creates an inactive <code>resume_version</code> and sends a self-notification; manual review and activation are required before it affects scoring. A byte-only change with identical normalized text is logged but does not create a new scoring version. Activation deactivates the previous base version in the same transaction, and historical scores continue to reference the exact extracted content they used. Product, program, and technical variants remain manual or n8n-derived versions linked through <code>parent_resume_version_id</code> rather than being silently regenerated from a changed PDF.</p>
+
+  <div class="note">
+    <span class="tag">Why keep rejections</span>
+    <p>Filter-stage rejections write a <code>score</code> row with every matching reason and the exact <code>ruleset_version</code>. Without them there's no way to answer "why did I never see any Stripe roles" three weeks later, and no way to tell a broken filter from a quiet market. Counts alone are not enough: the weekly audit draws up to five postings that failed exactly one rule from each rule stratum, plus five uniformly selected postings that failed multiple rules. The multi-rule stratum prevents correlated filters from creating an invisible blind spot.</p>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="s05">
+  <h2><span class="num">05</span>Source layer</h2>
+  <p class="sub">Prefer documented public career-site interfaces. Treat every undocumented endpoint as an adapter hypothesis with fixtures and health checks.</p>
+
+  <p>Most small and mid-size companies embed an ATS rather than building a careers platform. Several ATS vendors expose unauthenticated posting APIs specifically to power those public pages; others expose public Markdown or HTML, and some require tenant-specific calls. The adapter must preserve both the posting page and the final application URL rather than assuming they are the same.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Platform</th><th class="m">Listings endpoint</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Greenhouse</td><td class="m">boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true</td><td>Body is HTML-escaped; unescape before storing.</td></tr>
+      <tr><td>Lever</td><td class="m">api[.eu].lever.co/v0/postings/{token}?mode=json</td><td>Store the global/EU region with the token.</td></tr>
+      <tr><td>Ashby</td><td class="m">api.ashbyhq.com/posting-api/job-board/{token}</td><td>Pass <code>includeCompensation=true</code>.</td></tr>
+      <tr><td>Workday</td><td class="m">{host}/wday/cxs/{tenant}/{site}/jobs</td><td>Tenant-specific POST; list then fetch detail. Reuse the proven prior-art adapter.</td></tr>
+      <tr><td>Workable</td><td class="m">apply.workable.com/{token}/llms.txt → jobs.md</td><td>Feature-detect the public Markdown feed. The documented SPI API requires auth; do not depend on the old public JSON path.</td></tr>
+      <tr><td>SmartRecruiters</td><td class="m">api.smartrecruiters.com/v1/companies/{token}/postings</td><td>Detail requires a second call per posting.</td></tr>
+      <tr><td>Recruitee</td><td class="m">{token}.recruitee.com/api/offers/</td><td>Subdomain is the token.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Adapter contract</h3>
+  <pre><code>@dataclass(frozen=True)
+class RawLocation:
+    label: str
+    country_code: str | None
+    region: str | None
+    city: str | None
+    workplace_type: str | None
+
+
+@dataclass(frozen=True)
+class RawPosting:
+    external_id: str
+    title: str
+    locations: list[RawLocation]
+    description_md: str
+    posting_url: str
+    apply_url: str
+    source_published_at: datetime | None
+    source_updated_at: datetime | None
+    department: str | None
+    raw: dict                  # vendor payload, retained for debugging
+
+
+@dataclass(frozen=True)
+class FetchResult:
+    postings: list[RawPosting]
+    complete: bool             # only complete fetches may close missing jobs
+    http_status: int
+    etag: str | None = None
+    last_modified: str | None = None
+
+
+@dataclass(frozen=True)
+class ConditionalHeaders:
+    etag: str | None = None
+    last_modified: str | None = None
+
+
+class ATSAdapter(Protocol):
+    slug: str
+    rate_limit_per_min: int
+
+    async def list_postings(
+        self, endpoint: SourceEndpoint, conditional: ConditionalHeaders
+    ) -> FetchResult: ...
+    def token_patterns(self) -> list[re.Pattern]: ...   # used by discovery</code></pre>
+
+  <p>Every adapter implements <code>token_patterns()</code> so discovery harvesters can recognise board URLs without knowing platform details. Recorded response fixtures cover normal, empty, paginated, malformed, and rate-limited payloads. A fetch marked incomplete may update rows it saw, but it may never close rows it did not see.</p>
+
+  <h3>Fallback tier</h3>
+  <p>Otta, Built In, and Wellfound have no stable public feed and may sit behind bot protection. A Scrapling <code>Spider</code> may use a stealthy session only where robots permits it, with <code>robots_txt_obey=True</code>, a real <code>download_delay</code>, and a descriptive user agent. Adaptive matching must be configured deliberately: enable adaptive parsing, save known-good elements with <code>auto_save=True</code>, then use <code>adaptive=True</code> only as a recovery path. This tier discovers company names and outbound board links; it is not trusted for canonical application URLs.</p>
+
+  <div class="note warn">
+    <span class="tag">Failure mode to instrument</span>
+    <p>The dangerous failure isn't an exception — it's a source that returns <code>200 OK</code> and zero rows after a redesign. Every endpoint writes a <code>source_fetch</code> row. A source that averaged more than twenty postings and returns zero twice consecutively is marked failing and alerted; neither run is allowed to close its existing postings.</p>
+  </div>
+</section>
+
+<!-- 06 -->
+<section id="s06">
+  <h2><span class="num">06</span>Discovery</h2>
+  <p class="sub">Fetching is tractable. The compounding problem is resolving durable companies to the endpoints that currently publish their jobs.</p>
+
+  <h3>Hacker News "Who is Hiring"</h3>
+  <p>Algolia's API is free and unauthenticated. The monthly thread skews small, remote-friendly, and technical, and some comments link directly to a Greenhouse, Lever, or Ashby board. Treat its yield as a measured hypothesis rather than an assumption.</p>
+  <pre><code># 1. find the thread
+GET https://hn.algolia.com/api/v1/search_by_date
+      ?query=Ask HN: Who is hiring?
+      &amp;tags=story,author_whoishiring
+      &amp;hitsPerPage=12
+
+# select the newest exact monthly title; relevance-ranked /search returns old threads
+
+# 2. pull every comment
+GET https://hn.algolia.com/api/v1/search
+      ?tags=comment,story_{story_id}
+      &amp;hitsPerPage=1000
+
+# Algolia caps pagination depth near 1,000 hits; when a thread
+# exceeds that, window further requests by numericFilters=created_at_i
+
+# 3. run each adapter's token_patterns() over comment_text
+#    resolve company identity, upsert source_endpoint, append discovery_event</code></pre>
+
+  <h3>Other harvesters</h3>
+  <ul>
+    <li><strong>Remote feeds.</strong> We Work Remotely category RSS and Remote OK's JSON endpoint. Used to extract company names and outbound board links, then resolved to ATS tokens.</li>
+    <li><strong>Seed list.</strong> Hand-curated, version-controlled. Consultancies and enterprise targets that match prior delivery experience — Slalom, West Monroe, Thoughtworks, Nortal, and similar — most of which sit on Workday or SmartRecruiters.</li>
+    <li><strong>Token resolution.</strong> Follow the company's own careers link and inspect recognised board URLs first. Only then try a small set of obvious slugs against each ATS. Cache every attempt so failed guesses are not repeated.</li>
+    <li><strong>Manual add.</strong> A form field in the dashboard. Paste any board URL, the system infers platform and token.</li>
+  </ul>
+
+  <h3>Registry hygiene</h3>
+  <p>Companies migrate between ATS platforms, which shows up as an endpoint that used to return postings and now returns 404. After three consecutive failures, mark that <code>source_endpoint</code> failing and flag it for re-resolution. A successful replacement becomes a new endpoint linked to the same company; the old one is retired, never overwritten or hard-deleted.</p>
+</section>
+
+<!-- 07 -->
+<section id="s07">
+  <h2><span class="num">07</span>Deduplication and hard filters</h2>
+  <p class="sub">This stage removes most new or changed candidates and costs nothing. It should be pure, synchronous, versioned, and covered by tests.</p>
+
+  <h3>Deduplication, in order</h3>
+  <ol>
+    <li><strong>Identity.</strong> <code>(source_endpoint_id, external_id)</code> unique constraint. Handles re-fetches of the same posting.</li>
+    <li><strong>Content.</strong> <code>content_hash</code> over normalised title, locations, and body. An unchanged hash updates <code>last_seen_at</code> only and skips the rest of the pipeline entirely; a changed hash creates a new <code>posting_version</code>.</li>
+    <li><strong>Semantic candidate.</strong> Cosine similarity above the configured threshold against open postings from the same company flags likely reposts. It does not delete automatically: title family and location overlap must also agree before <code>duplicate_of_id</code> is set. Embeddings use <code>voyage-4</code> with <code>output_dimension=1024</code>; the model, dimension, and threshold are versioned.</li>
+  </ol>
+
+  <p>Only one embedding model is active at a time, and similarity queries require <code>embedding_model</code> to equal that configured model. A model change is a maintenance operation: generate all replacement vectors into staging first, then update the affected rows and active configuration in one transaction. The HNSW index receives those row updates normally and is rebuilt only when operational evidence calls for it. Mixed-model comparisons are never allowed, and a failed re-embedding leaves the previous model active.</p>
+
+  <h3>Rejection rules</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Rule</th><th>Rejects when</th><th class="m">reject_reasons</th></tr></thead>
+    <tbody>
+      <tr><td>Title match</td><td><code>title_norm</code> matches none of the product / program / project / delivery manager patterns</td><td class="m">title_no_match</td></tr>
+      <tr><td>Seniority floor</td><td>Title contains intern, junior, associate, coordinator, or analyst</td><td class="m">seniority_low</td></tr>
+      <tr><td>Adjacent-discipline</td><td>Product marketing, product designer, product owner-as-BA, sales engineer</td><td class="m">wrong_discipline</td></tr>
+      <tr><td>Remote reality</td><td>Structured workplace data or cited body evidence requires hybrid/onsite attendance; a generic mention of an office is not enough</td><td class="m">not_remote</td></tr>
+      <tr><td>Geography</td><td>Remote but scoped to a region excluding the US</td><td class="m">geo_excluded</td></tr>
+      <tr><td>Clearance</td><td>Requires an active security clearance</td><td class="m">clearance_required</td></tr>
+      <tr><td>Staleness</td><td><code>source_published_at</code> is older than 45 days; when unavailable, use <code>first_seen_at</code> and record that fallback</td><td class="m">stale</td></tr>
+      <tr><td>Already handled</td><td>An application exists; any prior item for the posting is skipped and not restored; or the current posting version is the same version that previously expired. An expired older version does not block a materially changed newer version.</td><td class="m">already_actioned</td></tr>
+      <tr><td>Blocked company</td><td><code>company.blocked</code> is true</td><td class="m">company_blocked</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <span class="tag">Tuning discipline</span>
+    <p>Every rule writes its evidence and all matching <code>reject_reasons</code>, not only the first match. The dashboard shows a weekly histogram, and a scheduled review samples rejected roles — stratified, not uniform. It draws up to five single-rule failures per rule, then five uniform multi-rule failures so correlated rules are not invisible. A uniform sample of <code>title_no_match</code> alone is dominated by obviously irrelevant roles and will never surface the borderline miss. A sudden 60% spike is a bug until proven otherwise; a stable histogram is not proof that the filter is correct.</p>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="s08">
+  <h2><span class="num">08</span>Scoring</h2>
+  <p class="sub">Two model stages, selected by evidence rather than brand tier. The first is a cheap vote; the second is the one that has to be right.</p>
+
+  <h3>Triage — fast model</h3>
+  <p>Start with the current Haiku-class model, but configure and store its exact provider model ID. One request per surviving posting, submitted with bounded concurrency or the provider's batch API. Input is the title, company one-liner, structured locations, and the first 1,200 characters of the body. Output uses provider-enforced structured JSON and is deliberately tiny.</p>
+  <pre><code>{ "score": 0-10, "reason": "&lt;12 words" }</code></pre>
+  <p>Everything scoring 6 or above advances, capped at twenty. If fewer clear the threshold, fewer advance. Never lower the bar to manufacture volume: a thin day may produce an empty queue.</p>
+
+  <h3>Deep scoring — strong model</h3>
+  <p>Benchmark a Sonnet-class and Opus-class model against the same labelled postings, then use the least expensive model that preserves queue quality. The request contains the exact posting version, exact résumé version, cited company-research version, and exact candidate-profile version. Location is not decoration: "US remote" postings routinely carve out individual states deep in the body — "excluding AK/HI", an "eligible states" list — where a broad deterministic geography rule cannot safely decide. Verifying state eligibility against the versioned candidate location is a mandatory rubric check, and a failure is a red flag, not a footnote. Scoring stays on separate axes because a blended number hides the thing you actually need to know: <em>which</em> dimension is weak.</p>
+  <pre><code>{
+  "verdict": "apply" | "maybe" | "skip",
+  "overall": 0-100,
+
+  "domain_fit":    { "score": 0-10, "note": "one sentence" },
+  "seniority_fit": { "score": 0-10, "note": "one sentence" },
+  "remote_fit":    { "score": 0-10, "note": "one sentence" },
+  "company_fit":   { "score": 0-10, "note": "one sentence" },
+
+  "location_eligibility": {
+    "status": "eligible" | "ineligible" | "unclear",
+    "evidence": "verbatim eligibility or exclusion text, or null"
+  },
+
+  "gaps": [
+    {
+      "requirement": "verbatim from the posting",
+      "evidence_in_resume": "none" | "weak" | "strong",
+      "suggested_framing": "how existing experience could address it,
+                            or null if it genuinely can't"
+    }
+  ],
+
+  "hooks": [
+    "two sentences on why this company specifically,
+     grounded in the research payload — no generic enthusiasm"
+  ],
+
+  "resume_variant": "product" | "program" | "technical",
+  "red_flags": ["e.g. 'remote' contradicted in the body,
+                 state carve-out excludes the candidate,
+                 or state eligibility remains unclear"]
+}</code></pre>
+
+  <div class="note">
+    <span class="tag">The field that earns its keep</span>
+    <p><code>gaps</code> is the highest-value output in the system. A match score tells you whether to apply; the gap list tells you what to rewrite before you do. <code>suggested_framing</code> must be allowed to return null — a model that always finds a way to claim relevant experience is worse than useless. Every quoted requirement is validated as a substring of the posting before the response is stored.</p>
+  </div>
+
+  <h3>Research payload</h3>
+  <p>Assembled before deep scoring and stored as an immutable <code>company_research</code> version: what the company actually builds, approximate size, funding stage if applicable, and anything notable in the last year. Every time-sensitive fact carries a source URL and retrieval date; current events must come from live sources, not model memory. Refresh no more than monthly, or immediately after a material company change. The mechanism is Anthropic's server-side web search tool, pinned in configuration: <code>web_search_20260318</code> is the default, <code>web_search_20260209</code> is the dynamic-filtering compatibility fallback, and <code>web_search_20250305</code> is the basic-search fallback. These are capability versions rather than labels for model age; the configured model-and-tool pair must pass a smoke request before a run can spend its research budget. Citations arrive with URLs natively while the system stays on one provider. Each company request permits at most three searches, and a pipeline run permits thirty searches across all companies. The application decrements the run-wide budget rather than relying on the provider's per-request <code>max_uses</code> alone. When the budget is exhausted, fresh cached research may be reused; a company without usable research is deferred from deep scoring rather than filled from model memory. Store the exact research model, prompt, server-tool version, token counts, web-search request count, and cost. Cost accounting assumes research, not scoring, dominates spend.</p>
+
+  <h3>Queue selection</h3>
+  <p>Rank by <code>overall</code>, fill at most three active slots with <code>verdict = apply</code>, and allow no more than two roles from the same company on the same day. Eligibility is gated deterministically, not by the model's verdict: only <code>eligible</code> and <code>unclear</code> statuses qualify. An <code>ineligible</code>, missing, or malformed status never enters the queue even when the verdict says apply; <code>unclear</code> remains eligible with its red flag rendered on the card. Active carryovers consume slots before new recommendations are selected; the combined queue displays carryovers first, then today's items by rank. Freezing makes digest membership, rank, and score references immutable; item state may still move to skipped, applied, expired, or restored. Later runs on the same day update the pool and carryover state but never regenerate the frozen digest. On freeze, a self-notification through the configured ntfy or SMTP transport reports the combined active count and titles, explicitly including zero-role days. Unreviewed recommendations may carry for three days without being cloned into new digests; after that they expire to history. A skipped posting never re-enters without manual restoration — a skip was a human decision. An expired posting becomes eligible again automatically when a material change produces a new <code>posting_version</code> — expiry was only a timeout. Overflow remains ranked in the pool. Scores are never overwritten — model, prompt, rubric, résumé, candidate profile, research, and posting changes all write a new row.</p>
+</section>
+
+<!-- 09 -->
+<section id="s09">
+  <h2><span class="num">09</span>API surface</h2>
+  <p class="sub">Small on purpose. The dashboard is the only consumer.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th class="m">Route</th><th>Returns / does</th></tr></thead>
+    <tbody>
+      <tr><td class="m">GET /api/queue?date=</td><td>The frozen digest plus active carryovers, with scores, gaps, hooks, and apply URLs. Defaults to today.</td></tr>
+      <tr><td class="m">GET /api/postings/{id}</td><td>Current posting, version history, scores, company and endpoint records, digest history, and application state.</td></tr>
+      <tr><td class="m">POST /api/digest-items/{id}/skip</td><td>Skip a recommendation with a required reason. The posting will not resurface automatically.</td></tr>
+      <tr><td class="m">POST /api/digest-items/{id}/restore</td><td>Make a previously skipped or expired posting eligible for a future digest.</td></tr>
+      <tr><td class="m">POST /api/applications</td><td>Create an application from either a digest item or a manually entered posting. Records <code>origin</code>, résumé version, and timestamp; accepts <code>digest_item_id</code> for digest origin or <code>posting_id</code> for manual origin, never both.</td></tr>
+      <tr><td class="m">PATCH /api/applications/{id}</td><td>Update current status and notes; append an <code>application_event</code>.</td></tr>
+      <tr><td class="m">GET /api/pool?min_score=&amp;limit=</td><td>Everything that scored well but didn't make a queue. The overflow view.</td></tr>
+      <tr><td class="m">GET /api/companies?status=</td><td>Registry with historical endpoints, research freshness, and fetch health.</td></tr>
+      <tr><td class="m">POST /api/companies</td><td>Manual add. Accepts any board URL, resolves company identity, and creates or links an endpoint.</td></tr>
+      <tr><td class="m">POST /api/companies/{id}/block</td><td>Blocklist a company. Takes effect at the filter stage.</td></tr>
+      <tr><td class="m">POST /api/postings</td><td>Manual entry: any URL plus title and company. In one transaction creates a <code>manual</code> run, reuses or creates the company and its <code>custom</code> endpoint, and writes a posting and posting version. The returned posting ID can be passed to <code>POST /api/applications</code>.</td></tr>
+      <tr><td class="m">GET /api/resume-versions</td><td>Résumé provenance and version history, including the active version per variant and any portfolio-sourced version awaiting review.</td></tr>
+      <tr><td class="m">POST /api/resume-versions/sync</td><td>Conditionally fetch and parse the configured portfolio PDF. Returns <code>unchanged</code>, <code>activated_initial</code>, or the ID of a newly staged inactive version.</td></tr>
+      <tr><td class="m">POST /api/resume-versions/{id}/activate</td><td>After review, transactionally make the selected version active for its variant and deactivate the prior version.</td></tr>
+      <tr><td class="m">POST /api/runs</td><td>Trigger an idempotent daily, discovery-only, or backfill run. Returns the <code>pipeline_run</code> ID.</td></tr>
+      <tr><td class="m">GET /api/runs/{id}</td><td>Persisted step state, counts, per-endpoint fetch results, and errors.</td></tr>
+      <tr><td class="m">GET /api/stats</td><td>Funnel counts, rejection and false-negative audits, source health, queue precision, per-run tokens, web-search requests and cost, and application outcomes segmented by digest versus manual origin.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="num">10</span>Dashboard</h2>
+  <p class="sub">Three screens. Build a minimal Today and Tracker only after the terminal queue is credible; build Health after coverage starts expanding.</p>
+
+  <h3>Today</h3>
+  <p>The default view and the reason the system exists. Zero to three cards, ranked, with carryovers visibly distinguished from today's digest. Each shows the role, company one-liner, the four axis scores, the two-sentence hook, cited research, and the gap list rendered as a checklist. Two primary actions: <strong>Open application</strong> (the canonical apply URL) and <strong>Skip</strong> (with a required reason, captured for calibration). Marking a role applied creates the application record, links the résumé version, and prevents resurfacing.</p>
+
+  <h3>Tracker</h3>
+  <p>Every actual application by current status, with an event timeline underneath. Outcomes are not a strict line: a rejection can occur after any stage, a withdrawal is different from a rejection, and <code>ghosted</code> is its own outcome. The history eventually answers whether high-scoring roles convert better than mid-scoring ones without pretending the hiring process is linear. Applications made outside the pipeline — warm outreach, referrals — enter through manual posting entry with <code>origin = manual</code> and act as the control group: without them, whether the pipeline's picks actually convert better is unanswerable.</p>
+
+  <h3>Health</h3>
+  <p>Pipeline step state, funnel counts per day, rejection reasons as a stacked bar, false-negative audit samples, per-endpoint <code>postings_seen</code> over time, registry growth, research freshness, and failing endpoints. This is the screen that tells you the system is quietly broken before you notice the queue got boring.</p>
+
+  <div class="note">
+    <span class="tag">Empty state</span>
+    <p>Some days there will be nothing worth applying to. The Today screen must say so plainly and show what got closest and why it fell short — not display a spinner, an encouraging message, or three mediocre roles padded out to fill the grid.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="num">11</span>Deployment</h2>
+  <p class="sub">Compose behind NPM, with a dedicated ingress network so unrelated containers cannot bypass Authelia laterally.</p>
+
+  <pre><code>services:
+  api:
+    build: ./api
+    container_name: jobs-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers
+    environment:
+      DATABASE_URL: postgresql+psycopg://jobs:${JOBS_DB_PASSWORD}@db:5432/jobs
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY}
+      EMBEDDING_MODEL: voyage-4
+      EMBEDDING_DIMENSIONS: "1024"
+      WEB_SEARCH_TOOL_VERSION: ${WEB_SEARCH_TOOL_VERSION:-web_search_20260318}
+      RESEARCH_SEARCHES_PER_COMPANY: "3"
+      RESEARCH_SEARCHES_PER_RUN: "30"
+      CANDIDATE_CITY: ${CANDIDATE_CITY}
+      CANDIDATE_REGION: ${CANDIDATE_REGION}
+      CANDIDATE_COUNTRY: ${CANDIDATE_COUNTRY:-US}
+      CANDIDATE_PORTFOLIO_URL: ${CANDIDATE_PORTFOLIO_URL:-https://michaelbuckingham.org}
+      BASE_RESUME_URL: ${BASE_RESUME_URL:-https://michaelbuckingham.org/michael-buckingham-resume.pdf}
+      RESUME_MAX_BYTES: "10485760"
+      CSRF_SECRET: ${CSRF_SECRET}
+      SCHEDULER_ENABLED: "true"
+      SCHEDULER_HOUR: "3"
+      APP_TIMEZONE: America/Anchorage
+      FORWARDED_ALLOW_IPS: ${JOBS_INGRESS_CIDR}
+      NOTIFY_BACKEND: ${NOTIFY_BACKEND:-ntfy}
+      NTFY_URL: ${NTFY_URL:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC}
+      NTFY_TOKEN: ${NTFY_TOKEN}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      NOTIFY_TO: ${NOTIFY_TO:-}
+    depends_on:
+      db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    networks:
+      default:
+      jobs_ingress:
+        aliases: [jobs-api]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    build: ./api
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://jobs:${JOBS_DB_PASSWORD}@db:5432/jobs
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [default]
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: jobs-postgres
+    environment:
+      POSTGRES_DB: jobs
+      POSTGRES_USER: jobs
+      POSTGRES_PASSWORD: ${JOBS_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobs -d jobs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes: [jobsdb:/var/lib/postgresql/data]
+    networks: [default]
+    restart: unless-stopped
+
+networks:
+  jobs_ingress:
+    external: true
+
+volumes:
+  jobsdb:</code></pre>
+
+  <p>This compose file lives at <code>~/my-apps/jobs/docker-compose.yml</code> on the VPS and at <code>/Users/michaelbuckingham/Documents/my-apps/jobs/docker-compose.yml</code> locally. It builds the application from the repository's <code>./api</code> directory, keeping application code, migrations, deployment configuration, and documentation in one <code>jobs</code> repository. The production checkout's gitignored <code>.env</code> is mode <code>0600</code>. Nginx Proxy Manager terminates TLS, requires Authelia forward authentication, and only then proxies <code>jobs.forkstech.com</code> to <code>jobs-api:8000</code> over the dedicated external <code>jobs_ingress</code> bridge. That bridge has exactly two members: NPM and <code>jobs-api</code>. The API does not join the shared <code>npm_network</code>; Postgres stays on the project-default network and publishes no ports. Jinja renders the application and FastAPI serves the small static asset bundle, avoiding a second frontend container. The single Uvicorn worker owns the in-process trigger; the advisory lock remains mandatory protection against duplicate runs.</p>
+
+  <h3>Access control</h3>
+  <p>This publicly resolvable hostname holds a résumé, an application history, and a strategy. NPM and Authelia form its sole authentication boundary:</p>
+  <ul>
+    <li>NPM invokes the existing ForksTech Authelia forward-auth endpoint at <code>/api/verify</code> before proxying every HTML, static, and API path. Authelia gets an explicit <code>jobs.forkstech.com</code> access-control rule for user <code>michael</code>; there are no route bypasses. The application implements no login page, password storage, user table, authentication cookie, or authenticated session.</li>
+    <li>The existing <code>auth.forkstech.com</code> portal remains Tailscale-only. Consequently, a new or expired browser session can authenticate only while the client is on the tailnet and can resolve the portal's documented hosts entry. This Tailscale-required access posture is intentional. The jobs rule uses <code>one_factor</code>, matching the host's current protected-service policy; do not describe it as MFA unless that policy is explicitly changed to <code>two_factor</code>.</li>
+    <li>Authelia owns credentials, authentication cookies, session rotation, and login throttling. The application still protects every state-changing request against CSRF with strict same-origin validation and a form or request token backed by <code>CSRF_SECRET</code>; delegating authentication does not make CSRF disappear.</li>
+    <li>Application rate limits and audit records key on the real client IP. The current Cloudflare record is DNS-only, so NPM overwrites <code>X-Forwarded-For</code> from the direct client address and Uvicorn accepts forwarded headers only from the inspected <code>jobs_ingress</code> CIDR supplied as <code>FORWARDED_ALLOW_IPS</code>. If Cloudflare proxying is enabled later, NPM must instead sanitize and map trusted <code>CF-Connecting-IP</code> to <code>X-Forwarded-For</code>, and the origin firewall must accept public HTTP/S only from Cloudflare. Never trust either header from arbitrary peers. CIDR values in <code>forwarded-allow-ips</code> require Uvicorn 0.31.0 or newer; pin that dependency floor or higher.</li>
+    <li>The application does not use forwarded identity headers for authorization. If an Authelia identity header is displayed or retained for audit purposes, NPM must remove the client-supplied value and overwrite it from the successful auth response.</li>
+    <li><code>robots.txt</code> disallowing everything, plus <code>X-Robots-Tag: noindex, nofollow</code> on all responses.</li>
+    <li>The initial DNS-only deployment relies on the host's UFW and <code>DOCKER-USER</code> guard to expose only ports 80/443 publicly. Cloudflare proxying plus Cloudflare-only origin ingress or a Tunnel is a later hardening option, not an assumption baked into Phase 1.</li>
+    <li>API keys in the environment only. Never in the image, never in the repo.</li>
+    <li>Résumé text and model prompts are redacted from application logs. Provider request IDs are retained; full requests are not.</li>
+    <li>Backups fold into the existing ForksTech Restic-to-Backblaze workflow: the tracked backup script creates a logical <code>pg_dump</code> of <code>jobs-postgres</code>, and the existing repository backup captures compose configuration. A documented restore test is performed quarterly.</li>
+  </ul>
+
+  <h3>Politeness</h3>
+  <p>A descriptive user agent with a contact address, one request per second per host with jittered backoff, conditional requests where <code>ETag</code> or <code>Last-Modified</code> is offered, and <code>robots_txt_obey=True</code> on every Scrapling Spider. Public career-site endpoints are intended for this kind of read, but nothing about that justifies hammering them.</p>
+</section>
+
+<!-- 12 -->
+<section id="s12">
+  <h2><span class="num">12</span>Infrastructure</h2>
+  <p class="sub">The production target is the existing ForksTech host and its established NPM, Authelia, firewall, Tailscale, monitoring, and Restic conventions—not a new platform.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Concern</th><th>Production decision</th></tr></thead>
+    <tbody>
+      <tr><td>Public URL</td><td><code>https://jobs.forkstech.com</code></td></tr>
+      <tr><td>DNS</td><td>Cloudflare DNS-only A record already exists and resolves to <code>187.77.11.171</code>. No DNS mutation is required for the initial deploy.</td></tr>
+      <tr><td>Host</td><td>Hostinger VPS <code>forkstech.com</code>, Ubuntu 26.04 LTS, 32 GB RAM, public IP <code>187.77.11.171</code>.</td></tr>
+      <tr><td>Administration</td><td>SSH as <code>michael</code> over Tailscale at <code>100.120.233.4</code>. Public SSH and root login remain disabled.</td></tr>
+      <tr><td>Application repository</td><td>Local Git repository <code>/Users/michaelbuckingham/Documents/my-apps/jobs</code>, default branch <code>main</code>.</td></tr>
+      <tr><td>GitHub</td><td>A private repository named <code>jobs</code>, created before implementation begins and connected as <code>origin</code>. It must never be made public because prompts, fixtures, and candidate-specific logic may be sensitive even when secrets are excluded.</td></tr>
+      <tr><td>Ingress</td><td>Existing hardened Nginx Proxy Manager on public ports 80/443, with Authelia forward auth required before proxying; no application port is published.</td></tr>
+      <tr><td>Networks</td><td>NPM and <code>jobs-api</code> are the only members of the dedicated external <code>jobs_ingress</code> bridge. <code>jobs-api</code> also joins its project-default network for database access; <code>jobs-postgres</code> joins only that project-default network. The API never joins the shared <code>npm_network</code>.</td></tr>
+      <tr><td>Persistent data</td><td>Named volume <code>jobsdb</code>, protected operationally by logical PostgreSQL dumps rather than raw-volume copies.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Repository bootstrap — before Phase 1</h3>
+  <p>The first implementation action is to initialize <code>/Users/michaelbuckingham/Documents/my-apps/jobs</code> as the local <code>jobs</code> Git repository and create a private GitHub repository with the same name. Initialize <code>main</code>, add the GitHub repository as <code>origin</code>, and verify that GitHub reports <code>PRIVATE</code> before the first push. The initial commit contains this specification under <code>docs/</code>, a short README, the root Compose file, and a defensive <code>.gitignore</code> covering <code>.env</code> files, credentials, virtual environments, caches, generated artifacts, database dumps, and local data. No secret or production résumé copy is committed; the public PDF is fetched from its configured URL.</p>
+
+  <pre><code>mkdir -p /Users/michaelbuckingham/Documents/my-apps/jobs
+cd /Users/michaelbuckingham/Documents/my-apps/jobs
+git init --initial-branch=main
+
+# after README, .gitignore, docker-compose.yml, and docs/jobs-forkstech-spec.html exist
+git add README.md .gitignore docker-compose.yml docs/jobs-forkstech-spec.html
+git commit -m "Initialize jobs"
+gh repo create jobs --private --source=. --remote=origin --push
+gh repo view --json nameWithOwner,visibility</code></pre>
+
+  <p>The VPS application checkout is <code>~/my-apps/jobs</code>, including its <code>docker-compose.yml</code>. Populate it through a dedicated read-only deploy key or a trusted local-to-VPS deployment transfer; do not place a personal GitHub token in the application environment. The existing <code>docker-configs</code> repository remains responsible only for shared host infrastructure such as Nginx Proxy Manager, the central backup script, and the sysadmin log.</p>
+
+  <pre><code>Internet
+   │
+   │  jobs.forkstech.com → 187.77.11.171 (Cloudflare DNS only)
+   ▼
+ForksTech UFW + DOCKER-USER guard
+   │  public 80/443 only
+   ▼
+nginx-proxy-manager
+   │  TLS, Force SSL, HSTS, HTTP/2
+   ├── auth_request → authelia:9091/api/verify
+   │       └── auth.forkstech.com login requires Tailscale
+   │
+   │  after auth: jobs_ingress → http://jobs-api:8000
+   ▼
+jobs-api
+   │  jobs project-default network
+   ▼
+jobs-postgres:5432
+
+Administration: Mac ── Tailscale ──► michael@100.120.233.4</code></pre>
+
+  <p>The network is shared by two Compose projects but not by unrelated workloads. Create it once on the VPS after verifying that the chosen CIDR does not overlap any live Docker, host, or Tailscale network:</p>
+
+  <pre><code>docker network create \
+  --driver bridge \
+  --internal \
+  --subnet &lt;recorded non-overlapping CIDR&gt; \
+  jobs_ingress
+
+# addition to ~/docker-configs/nginx-proxy-manager/docker-compose.yml
+services:
+  nginx-proxy-manager:
+    networks:
+      - npm_network
+      - jobs_ingress
+
+networks:
+  npm_network:
+    external: true
+  jobs_ingress:
+    external: true</code></pre>
+
+  <h3>NPM and TLS</h3>
+  <ul>
+    <li>Create one NPM proxy host for <code>jobs.forkstech.com</code>, forwarding HTTP to <code>jobs-api</code> on port <code>8000</code> over <code>jobs_ingress</code>. Request a Let's Encrypt certificate and enable Force SSL, HSTS, HTTP/2, and Block Common Exploits. Apply the host's established Authelia forward-auth configuration using <code>/api/verify</code>. Websocket support is unnecessary unless a later feature introduces it.</li>
+    <li>Keep NPM on its shared <code>npm_network</code> for existing applications and add <code>jobs_ingress</code> in its tracked Compose file. Attach <code>jobs-api</code> to <code>jobs_ingress</code> instead of <code>npm_network</code>; attach no other container. Do not publish port 8000 on the host and do not attach Postgres to either ingress network. The only public route is NPM on 80/443, consistent with the host's UFW and Docker firewall guard.</li>
+    <li>Because the A record is currently unproxied, the effective NPM configuration must produce a trustworthy direct-client <code>X-Forwarded-For</code>. Validate it through a temporary Authelia-protected diagnostic or structured access log before enabling IP-based application throttling, then remove or redact that diagnostic.</li>
+    <li>Use no NPM IP access list on the jobs proxy host; Authelia forward auth protects every path. Add <code>jobs.forkstech.com</code> explicitly to Authelia's <code>one_factor</code> policy for user <code>michael</code>, and add no bypass rules. The separate NPM access list on <code>auth.forkstech.com</code> remains unchanged, so login requires Tailscale plus the documented client hosts entry.</li>
+    <li>Test the boundary from both sides and laterally: an unauthenticated request must be redirected or rejected before it reaches FastAPI, an authenticated Tailscale client must reach HTML and API routes, direct access to <code>jobs-api:8000</code> must be impossible from outside Docker, and a representative unrelated container on <code>npm_network</code> must be unable to resolve or connect to <code>jobs-api:8000</code>.</li>
+  </ul>
+
+  <h3>Paths, secrets, and change control</h3>
+  <ul>
+    <li>Application source: <code>~/my-apps/jobs</code> on the VPS and <code>/Users/michaelbuckingham/Documents/my-apps/jobs</code> locally; private GitHub repository <code>jobs</code> is its remote source of truth.</li>
+    <li>Jobs Compose source: <code>~/my-apps/jobs/docker-compose.yml</code> on the VPS and <code>/Users/michaelbuckingham/Documents/my-apps/jobs/docker-compose.yml</code> locally. It is versioned in the same repository as the application.</li>
+    <li>Production secrets live in the server-side <code>~/my-apps/jobs/.env</code> with mode <code>0600</code>. A local <code>.env</code> may be used for development, but every such file is gitignored. Environment files contain database, Anthropic, Voyage, CSRF, candidate-location, notification, and proxy-trust values and are never committed or logged. A tracked <code>.env.example</code> contains names and safe placeholders only. There is no application authentication secret.</li>
+    <li>The <code>jobs_ingress</code> subnet is fixed infrastructure: <code>FORWARDED_ALLOW_IPS</code> embeds that CIDR, so a recreated network silently breaks proxy trust unless it reuses the same explicit <code>--internal</code> and <code>--subnet</code> values. Declare the external network in both tracked Compose files and record its CIDR, two-member expectation, creation command, and any recreation in the sysadmin log. A one-off <code>docker network connect</code> is not an acceptable deployment because an NPM recreation would discard that untracked attachment.</li>
+    <li>After every server change, update the affected tracked configuration locally: jobs application and Compose changes belong in the <code>jobs</code> repository, while shared NPM and backup changes belong in <code>docker-configs</code>. Append the dated action and validation result to <code>~/docker-configs/.SYSADMIN_LOG.md</code>, following the host's existing change-control rule.</li>
+  </ul>
+
+  <h3>Backup, monitoring, and recovery</h3>
+  <ul>
+    <li>Add <code>pg_dump -U jobs jobs</code> from <code>jobs-postgres</code> to the existing ForksTech <code>~/docker-configs/backup/backup.sh</code>. Ensure the Restic source set includes the logical dump and <code>~/my-apps/jobs/docker-compose.yml</code>, then carry both to the encrypted Backblaze B2 repository under the existing retention policy.</li>
+    <li>After adding backup coverage, run the backup manually, verify the new dump is present in the resulting snapshot, and record the snapshot and result in the sysadmin log. Perform a database restore into a disposable Postgres container before calling recovery proven.</li>
+    <li>The existing Tailscale-only node exporter continues host-level monitoring. Application health exposes an internal <code>/healthz</code> for container health checks, while failed runs, missing digests, zero-row source anomalies, and backup failures use the existing self-notification and Healthchecks patterns.</li>
+    <li>Docker's existing 100 MB × 3 log rotation applies. Application logs remain structured and redact résumé text, prompts, Authelia identity data, candidate location, and provider credentials.</li>
+  </ul>
+
+  <div class="note">
+    <span class="tag">Production acceptance</span>
+    <p>Deployment is complete only when HTTPS redirects cleanly, Authelia gates every HTML, static, and API route before FastAPI, a Tailscale-connected authenticated browser succeeds, a client unable to reach the Tailscale-only auth portal cannot establish a new session, state-changing requests reject missing or invalid CSRF proof, the application observes the real client IP through NPM, port 8000 and Postgres are unreachable from the public internet, no unrelated container can reach <code>jobs-api:8000</code>, <code>jobs_ingress</code> contains exactly NPM and <code>jobs-api</code>, the active base résumé is a verified extraction of the configured portfolio PDF, a zero-role notification arrives, a second run leaves the frozen digest unchanged, and a verified Restic snapshot contains a restorable jobs database dump.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="s13">
+  <h2><span class="num">13</span>Build phases</h2>
+  <p class="sub">Each phase ends at something usable. Nothing ships that can't be run end to end.</p>
+
+  <div class="phases">
+    <div class="phase">
+      <p class="p-n">Phase 1 · vertical slice</p>
+      <h3>Prove the queue</h3>
+      <p>Thirty hand-picked companies, three public ATS adapters, and the full path from fetch to a frozen terminal queue.</p>
+      <ul>
+        <li>Precondition: local <code>jobs</code> Git repository at <code>/Users/michaelbuckingham/Documents/my-apps/jobs</code> initialized on <code>main</code>, private GitHub <code>jobs</code> remote created and visibility verified, and this specification committed</li>
+        <li>Company, endpoint, run, posting-version, résumé-version, candidate-profile-version, score, and digest migrations</li>
+        <li>Portfolio PDF bootstrap, text-extraction validation, and versioned base-résumé activation</li>
+        <li>Greenhouse, Lever, and Ashby adapters with recorded fixtures</li>
+        <li>Idempotent ingest, hash gate, and safe close/reopen reconciliation</li>
+        <li>Deterministic filters and one strong-model deep score</li>
+        <li>Frozen queue as CLI and JSON, with the notification interface and ntfy as the first configured transport</li>
+      </ul>
+      <span class="done">Done when: repeated runs produce a credible zero-to-three queue without duplicating or incorrectly closing jobs.</span>
+    </div>
+
+    <div class="phase">
+      <p class="p-n">Phase 2 · calibration</p>
+      <h3>Make judgement trustworthy</h3>
+      <p>Review a labelled sample before scaling coverage. The goal is precision at three, not a large database.</p>
+      <ul>
+        <li>Fast-model triage with a fixed threshold</li>
+        <li>Sonnet-class versus Opus-class evaluation on the same postings</li>
+        <li>Versioned résumé, candidate profile, and cited company research with bounded web-search usage</li>
+        <li>Stratified false-negative sampling — single-rule failures per rule plus a multi-rule stratum</li>
+        <li><code>voyage-4</code> semantic duplicate flagging with manual validation</li>
+      </ul>
+      <span class="done">Done when: queue precision is consistently high on manual review and rejected samples contain few desirable roles.</span>
+    </div>
+
+    <div class="phase">
+      <p class="p-n">Phase 3 · usable surface</p>
+      <h3>Today and Tracker</h3>
+      <p>Build the smallest interface that replaces the terminal and captures longitudinal outcomes.</p>
+      <ul>
+        <li>Authelia/NPM boundary and dedicated-ingress isolation tests, strict same-origin checks, and CSRF protection; no in-app authentication</li>
+        <li>Today cards, carryovers, gap checklist, skip, and apply actions</li>
+        <li>Tracker with application-event timeline</li>
+        <li>Manual posting and application entry with digest-versus-manual origin reporting</li>
+        <li>Queue-precision and attention-saved capture</li>
+        <li>Overflow pool view</li>
+      </ul>
+      <span class="done">Done when: the terminal is no longer the primary interface and every recommendation receives an outcome.</span>
+    </div>
+
+    <div class="phase">
+      <p class="p-n">Phase 4 · compounding</p>
+      <h3>Grow coverage deliberately</h3>
+      <p>Add discovery and enterprise coverage only after the ranking system has earned trust.</p>
+      <ul>
+        <li>Date-sorted HN harvester and discovery events</li>
+        <li>Workday detail adapter, then SmartRecruiters and Recruitee</li>
+        <li>Workable Markdown feature detection</li>
+        <li>Careers-link resolution with cached token guesses as fallback</li>
+        <li>Endpoint migration and registry-health workflows</li>
+      </ul>
+      <span class="done">Done when: the registry grows unattended and migrations or zero-row failures surface without corrupting posting state.</span>
+    </div>
+
+    <div class="phase">
+      <p class="p-n">Phase 5 · resilience</p>
+      <h3>Harden operations</h3>
+      <p>Add the expensive and failure-prone edges after the structured-source core is stable.</p>
+      <ul>
+        <li>Health screen, alerts, and failed-run recovery</li>
+        <li>Scrapling discovery fallback with adaptive selector fixtures</li>
+        <li>Backup automation and restore drill</li>
+        <li>Retention cleanup and performance tuning</li>
+        <li>Prompt, model, and ruleset comparison reports</li>
+      </ul>
+      <span class="done">Done when: silent failures are observable, recovery is documented, and a restore has succeeded.</span>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <span class="tag">Scope discipline</span>
+    <p>This is a real project being built during a job search, which creates an obvious failure mode: the tool becomes the work instead of producing the work. Every phase must end with a usable output, and manual outreach continues throughout. Registry size is not progress if queue precision is still unknown; scraping breadth is not progress if three structured adapters already produce enough roles. If Phase 1 drags, cut Ashby — two adapters prove the path just as well.</p>
+  </div>
+</section>
+
+<!-- 14 -->
+<section id="s14">
+  <h2><span class="num">14</span>Risks and open questions</h2>
+
+  <div class="split">
+    <div>
+      <h4>Known risks</h4>
+      <ul>
+        <li><strong>Silent source death.</strong> Mitigated by per-endpoint volume history, incomplete-fetch semantics, and zero-row alerts.</li>
+        <li><strong>ATS migration.</strong> Endpoints fail without warning. Historical <code>source_endpoint</code> rows preserve the old board while a replacement is resolved.</li>
+        <li><strong>Filter over-fitting.</strong> Aggressive rules quietly hide good roles. Mitigated by rejection histograms plus per-rule single-failure samples and a separate multi-rule sample.</li>
+        <li><strong>State carve-outs.</strong> "US remote" postings that exclude individual states can evade broad deterministic geography rules. The deep rubric's mandatory eligibility check, fed an immutable candidate-profile version, is the backstop.</li>
+        <li><strong>Scoring drift.</strong> Model, prompt, rubric, résumé, and research changes alter what "8/10" means. All are versioned and scores are append-only.</li>
+        <li><strong>Résumé source drift.</strong> The portfolio PDF can change independently of the application. Conditional fetches, raw and normalized hashes, staged inactive versions, and manual activation prevent a site update or bad extraction from silently changing model inputs.</li>
+        <li><strong>Registry bias.</strong> HN skews toward startups and away from the enterprise and consultancy roles that match prior delivery experience. The seed list is the counterweight and needs deliberate maintenance.</li>
+        <li><strong>Research hallucination.</strong> Current claims without sources produce persuasive but unusable hooks. Time-sensitive facts require live URLs and retrieval dates.</li>
+        <li><strong>Workflow duplication.</strong> Restarts or multiple API processes can trigger the same run. Idempotent steps and a Postgres advisory lock are mandatory.</li>
+        <li><strong>Scheduling gaps.</strong> Local wall-clock schedules can skip daylight-saving transitions. The 03:00 Anchorage trigger, hourly missing-digest reconciliation, and advisory lock make the date invariant explicit.</li>
+        <li><strong>Authentication bypass.</strong> A missed NPM location or Authelia bypass rule would expose private HTML or API data because the application intentionally has no second authentication layer. Protect and test every path, publish no app port, and require an explicit Authelia domain rule.</li>
+        <li><strong>Container lateral movement.</strong> Putting an unauthenticated upstream on the shared <code>npm_network</code> would let a compromised neighboring container bypass NPM and Authelia. <code>jobs-api</code> instead uses the two-member <code>jobs_ingress</code> bridge; membership and negative connectivity from an unrelated container are deployment acceptance checks.</li>
+        <li><strong>Proxy trust error.</strong> Trusting client-supplied forwarding headers defeats audit attribution and application throttling. NPM must normalize the client address and Uvicorn must trust only the inspected proxy-network CIDR.</li>
+        <li><strong>Privacy leakage.</strong> Résumé text can escape through logs or model-debug payloads. Store only versioned inputs, redact logs, and retain provider request IDs instead of full requests.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Open questions</h4>
+      <ul>
+        <li>Should the queue adapt to outcomes? Once fifty applications have resolved, scoring could be calibrated against what actually converted — but fifty is a long way off, and premature calibration on ten data points is worse than none.</li>
+        <li>Does the n8n résumé generator produce reviewed variants from the portfolio-seeded base résumé, or get replaced? Either way, every generated variant must retain <code>parent_resume_version_id</code>; running two untracked generation paths is worse than either.</li>
+        <li>Which strong model earns production use? Decide with the labelled set; do not assume the most expensive tier is materially better for this rubric.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Success metrics by horizon</h3>
+  <ul>
+    <li><strong>Early:</strong> precision at three — the share of queued roles that survive human review — plus minutes of attention required per useful role.</li>
+    <li><strong>Safety:</strong> desirable-role rate in the weekly rejection sample, segmented by single-rule stratum and multi-rule failures.</li>
+    <li><strong>Later:</strong> screen, interview, and offer rates per hundred applications, segmented by score band and résumé version.</li>
+    <li><strong>Never:</strong> queue size or registry size by themselves. Both are trivial to increase without improving the search.</li>
+  </ul>
+
+  <div class="note">
+    <span class="tag">Expectations</span>
+    <p>A perfectly functioning version of this system can still produce a flat funnel for weeks. Cold applications to small companies convert in the low single digits regardless of match quality. The pipeline's job is to make each application cheap enough to write well and specific enough to be worth reading — not to make the market respond faster than it does.</p>
+  </div>
+</section>
+
+<footer>
+  <p>jobs.forkstech.com · specification v0.12 · draft, not yet built<br>
+  Prior art: Far Reach Jobs (39 sources, 1,000+ listings) — selective reuse into a clean service and schema.<br>
+  v0.3: Voyage embeddings, web-search research, state eligibility, stratified sampling, freeze notification, timezone pin, off-pipeline tracking, proxy-aware rate limiting.<br>
+  v0.4: Voyage 4, versioned candidate location, bounded research usage, version-aware expiry, manual control-group flow, DST-safe scheduling, trusted proxy chain, multi-rule audits, and ForksTech infrastructure runbook.<br>
+  v0.5: daily queue cap reduced from five to three so opportunity quality and application quality remain the governing constraint.<br>
+  v0.6: deterministic ineligibility gate at queue selection, pinned web-search tool version, single-active version constraints, pinned npm_network subnet and uvicorn floor.<br>
+  v0.7: Authelia becomes the sole authentication boundary, app-owned sessions are removed, location eligibility fails closed, and current web-search and Uvicorn version facts are corrected.<br>
+  v0.8: jobs-api leaves the shared npm_network for a fixed two-member jobs_ingress bridge, closing the container-to-container Authelia bypass path.<br>
+  v0.9: michaelbuckingham.org and its PDF résumé become the provenance-tracked source for the versioned base résumé, with conditional sync and reviewed activation.<br>
+  v0.10: the v1 résumé non-goal is clarified—portfolio PDF ingestion and versioning are in scope; automated generation and rewriting are deferred.<br>
+  v0.11: a local private Git repository and matching GitHub repository become pre-Phase 1 requirements.<br>
+  v0.12: the project is consolidated under <code>/Users/michaelbuckingham/Documents/my-apps/jobs</code>, with application code and the jobs Compose file versioned together; <code>docker-configs</code> is limited to shared host infrastructure.</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('#rail a'));
+  if(!links.length || !('IntersectionObserver' in window)) return;
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('on'); });
+        var a = map[e.target.id];
+        if(a) a.classList.add('on');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) io.observe(el);
+  });
+})();
+</script>
+</body>
+</html>

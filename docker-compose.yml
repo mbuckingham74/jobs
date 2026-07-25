@@ -1,0 +1,80 @@
+services:
+  api:
+    build: ./api
+    container_name: jobs-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers
+    environment:
+      DATABASE_URL: postgresql+psycopg://jobs:${JOBS_DB_PASSWORD}@db:5432/jobs
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY}
+      EMBEDDING_MODEL: voyage-4
+      EMBEDDING_DIMENSIONS: "1024"
+      WEB_SEARCH_TOOL_VERSION: ${WEB_SEARCH_TOOL_VERSION:-web_search_20260318}
+      RESEARCH_SEARCHES_PER_COMPANY: "3"
+      RESEARCH_SEARCHES_PER_RUN: "30"
+      CANDIDATE_CITY: ${CANDIDATE_CITY}
+      CANDIDATE_REGION: ${CANDIDATE_REGION}
+      CANDIDATE_COUNTRY: ${CANDIDATE_COUNTRY:-US}
+      CANDIDATE_PORTFOLIO_URL: ${CANDIDATE_PORTFOLIO_URL:-https://michaelbuckingham.org}
+      BASE_RESUME_URL: ${BASE_RESUME_URL:-https://michaelbuckingham.org/michael-buckingham-resume.pdf}
+      RESUME_MAX_BYTES: "10485760"
+      CSRF_SECRET: ${CSRF_SECRET}
+      SCHEDULER_ENABLED: "true"
+      SCHEDULER_HOUR: "3"
+      APP_TIMEZONE: America/Anchorage
+      FORWARDED_ALLOW_IPS: ${JOBS_INGRESS_CIDR}
+      NOTIFY_BACKEND: ${NOTIFY_BACKEND:-ntfy}
+      NTFY_URL: ${NTFY_URL:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC}
+      NTFY_TOKEN: ${NTFY_TOKEN}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      NOTIFY_TO: ${NOTIFY_TO:-}
+    depends_on:
+      db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    networks:
+      default:
+      jobs_ingress:
+        aliases: [jobs-api]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  migrate:
+    build: ./api
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://jobs:${JOBS_DB_PASSWORD}@db:5432/jobs
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [default]
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: jobs-postgres
+    environment:
+      POSTGRES_DB: jobs
+      POSTGRES_USER: jobs
+      POSTGRES_PASSWORD: ${JOBS_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobs -d jobs"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes: [jobsdb:/var/lib/postgresql/data]
+    networks: [default]
+    restart: unless-stopped
+
+networks:
+  jobs_ingress:
+    external: true
+
+volumes:
+  jobsdb:

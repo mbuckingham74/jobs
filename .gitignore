@@ -1,0 +1,83 @@
+# ---- secrets & environment ----
+.env
+.env.*
+!.env.example
+
+# ---- credentials / keys ----
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.deploy-key
+.googlecookfile
+
+# ---- OS metadata / caches ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- editor / IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+.venv/
+venv/
+env/
+.python-version
+
+# ---- virtual environments (any path) ----
+/**/.venv/
+/**/venv/
+
+# ---- caches ----
+.cache/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# ---- generated artifacts ----
+*.log
+*.tmp
+*.bak
+*.pid
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.tox/
+
+# ---- database dumps ----
+*.sql
+*.sql.gz
+*.dump
+*.psql
+dumps/
+
+# ---- local data ----
+data/
+local_data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Scrapling / scrapers ----
+.scrapling/
+scraping/
+
+# ---- node (if frontend tooling is added later) ----
+node_modules/
