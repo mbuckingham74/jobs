@@ -1,8 +1,11 @@
 """Alembic migration environment for jobs-api.
 
-The database URL is read only from the ``DATABASE_URL`` environment variable at
-runtime so no real connection string is tracked. When the variable is absent the
-command fails with a clear message instead of falling back to a default.
+The database URL is read only from the runtime ``DATABASE_URL`` environment
+variable (see ``app.migration_support``) and passed directly to the offline
+migration configuration and to a directly created SQLAlchemy engine for online
+migrations. It is never written to the Alembic ConfigParser, and connection
+errors are converted to a redacted ``SystemExit`` so the unmasked connection
+string cannot leak through logs or stack traces.
 """
 
 from __future__ import annotations
@@ -12,29 +15,17 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 
 # Ensure the local package is importable so app.* is available to migrations.
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+from app.migration_support import connect_or_exit, require_database_url  # noqa: E402
+
 config = context.config
 
-if config.config_file_name is not None:
+if config is not None and config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-
-def _database_url() -> str:
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        raise SystemExit(
-            "DATABASE_URL is not set. Alembic reads the runtime database URL "
-            "from the environment; no connection string is tracked."
-        )
-    return url
-
-
-# Alembic reads this attribute set on the config object.
-config.set_main_option("sqlalchemy.url", _database_url())
 
 # A future schema task will assign the declarative metadata's target_metadata.
 # Until then there are no application tables; offline and online migrations both
@@ -43,7 +34,7 @@ target_metadata = None
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = require_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -56,13 +47,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
+    url = require_database_url()
+    engine, connection = connect_or_exit(url, pool.NullPool)
+    try:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
@@ -70,6 +57,9 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+    finally:
+        connection.close()
+        engine.dispose()
 
 
 if context.is_offline_mode():
