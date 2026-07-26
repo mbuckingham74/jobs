@@ -37,6 +37,7 @@ Coverage follows Task 004 test requirements:
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
 import logging
 from datetime import UTC, datetime
@@ -62,6 +63,7 @@ from app.sources.ats.greenhouse import (
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "greenhouse"
 TOKEN = "forksboard"
 STOP = SourceEndpoint(kind="greenhouse", token=TOKEN)
+MAX_RESPONSE_BYTES = 10_485_760
 
 
 def _load_fixture(name: str) -> bytes:
@@ -294,6 +296,27 @@ def test_request_carries_fixed_user_agent_and_accept() -> None:
     assert captured["accept"] == "application/json"
 
 
+def test_adapter_owned_client_uses_documented_timeout_configuration() -> None:
+    captured_timeout = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured_timeout.update(req.extensions["timeout"])
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    adapter = GreenhouseAdapter(transport=httpx.MockTransport(handler))
+    result = asyncio.run(adapter.list_postings(STOP, ConditionalHeaders()))
+
+    assert result.complete is True
+    assert captured_timeout == {
+        "connect": 5.0,
+        "read": 30.0,
+        "write": 5.0,
+        "pool": 5.0,
+    }
+
+
 # --------------------------------------------------------------------
 # Conditional headers
 # --------------------------------------------------------------------
@@ -435,6 +458,42 @@ def test_normal_fixture_deterministic_order_independent_of_vendor() -> None:
     result_orig = asyncio.run(_run(orig_handler))
     assert [p.external_id for p in result_rev.postings] == [
         p.external_id for p in result_orig.postings
+    ]
+
+
+def test_deterministic_order_uses_title_and_posting_url_tiebreakers() -> None:
+    jobs = [
+        {
+            "id": 5000,
+            "title": "Beta",
+            "content": "<p>third</p>",
+            "absolute_url": "https://boards.greenhouse.io/x/jobs/middle",
+        },
+        {
+            "id": 5000,
+            "title": "Alpha",
+            "content": "<p>second</p>",
+            "absolute_url": "https://boards.greenhouse.io/x/jobs/z-last",
+        },
+        {
+            "id": 5000,
+            "title": "Alpha",
+            "content": "<p>first</p>",
+            "absolute_url": "https://boards.greenhouse.io/x/jobs/a-first",
+        },
+    ]
+    body = json.dumps({"jobs": jobs, "meta": {"total": len(jobs)}}).encode("utf-8")
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+
+    assert result.complete is True
+    assert [(p.external_id, p.title, p.posting_url) for p in result.postings] == [
+        ("5000", "Alpha", "https://boards.greenhouse.io/x/jobs/a-first"),
+        ("5000", "Alpha", "https://boards.greenhouse.io/x/jobs/z-last"),
+        ("5000", "Beta", "https://boards.greenhouse.io/x/jobs/middle"),
     ]
 
 
@@ -773,28 +832,39 @@ def test_fourth_redirect_is_incomplete_with_actual_status() -> None:
 
 
 def test_redirect_with_missing_location_incomplete() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(302)
 
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_redirect_with_whitespace_only_location_is_incomplete() -> None:
     # A whitespace-only Location is treated as malformed and the redirect is
     # reported incomplete with the actual redirect status, without issuing
     # another request.
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(302, headers={"location": "  "})
 
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_https_downgrade_redirect_rejected() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={"location": "http://boards-api.greenhouse.io/v1/boards/x/jobs?content=true"},
@@ -803,19 +873,27 @@ def test_https_downgrade_redirect_rejected() -> None:
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_cross_origin_redirect_rejected() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(302, headers={"location": "https://example.invalid/x"})
 
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_alternate_port_redirect_rejected() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -826,6 +904,7 @@ def test_alternate_port_redirect_rejected() -> None:
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_explicit_https_port_443_redirect_followed_as_same_origin() -> None:
@@ -865,7 +944,10 @@ def test_explicit_https_port_443_redirect_followed_as_same_origin() -> None:
 
 @pytest.mark.parametrize("port", ["80", "8080", "9000", "65535"])
 def test_alternate_explicit_port_redirect_rejected(port) -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -880,6 +962,7 @@ def test_alternate_explicit_port_redirect_rejected(port) -> None:
     assert result.http_status == 302
     assert result.complete is False
     assert result.postings == []
+    assert calls["n"] == 1
 
 
 def test_malformed_port_redirect_returns_incomplete_fetch_result() -> None:
@@ -888,7 +971,10 @@ def test_malformed_port_redirect_returns_incomplete_fetch_result() -> None:
     return an incomplete :class:`FetchResult` rather than letting an uncaught
     URL error escape as a transport failure."""
 
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -904,13 +990,17 @@ def test_malformed_port_redirect_returns_incomplete_fetch_result() -> None:
     assert result.http_status == 302
     assert result.complete is False
     assert result.postings == []
+    assert calls["n"] == 1
 
 
 def test_malformed_ipv6_redirect_returns_incomplete_fetch_result() -> None:
     """A broken IPv6 literal in a redirect target fails URL parsing. The
     adapter returns an incomplete :class:`FetchResult` rather than raising."""
 
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -924,10 +1014,14 @@ def test_malformed_ipv6_redirect_returns_incomplete_fetch_result() -> None:
     assert result.http_status == 302
     assert result.complete is False
     assert result.postings == []
+    assert calls["n"] == 1
 
 
 def test_credential_bearing_redirect_rejected() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -938,10 +1032,14 @@ def test_credential_bearing_redirect_rejected() -> None:
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_lookalike_host_redirect_rejected() -> None:
+    calls = {"n": 0}
+
     def handler(req):
+        calls["n"] += 1
         return httpx.Response(
             302,
             headers={
@@ -952,6 +1050,7 @@ def test_lookalike_host_redirect_rejected() -> None:
     result = asyncio.run(_run(handler))
     assert result.http_status == 302
     assert result.complete is False
+    assert calls["n"] == 1
 
 
 def test_validators_never_sent_to_cross_origin_redirect_target() -> None:
@@ -1068,44 +1167,42 @@ def test_declared_oversized_body_rejected_before_body_read() -> None:
 
 
 def test_streamed_oversized_without_content_length_aborts() -> None:
-    big = b"{" + b"x" * (10 * 1024 * 1024 + 4096)
+    decoded = b"{" + b"x" * MAX_RESPONSE_BYTES
+    compressed = gzip.compress(decoded)
+
+    class ChunkedCompressedStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            midpoint = len(compressed) // 2
+            yield compressed[:midpoint]
+            yield compressed[midpoint:]
 
     def handler(req):
-        resp = httpx.Response(200, content=big, headers={"content-type": "application/json"})
-        resp.headers.pop("content-length", None)
-        return resp
+        return httpx.Response(
+            200,
+            stream=ChunkedCompressedStream(),
+            headers={
+                "content-type": "application/json",
+                "content-encoding": "gzip",
+            },
+        )
 
     result = asyncio.run(_run(handler))
+    assert len(decoded) == MAX_RESPONSE_BYTES + 1
     assert result.http_status == 200
     assert result.complete is False
     assert result.postings == []
 
 
 def test_exact_ceiling_body_accepted() -> None:
-    # Exactly 10 MiB body: must be accepted (not rejected as oversized).
-    big_payload = json.dumps({"jobs": [], "meta": {"total": 0}}).encode("utf-8")
-    pad = b" " * (10 * 1024 * 1024 - len(big_payload))
-    body = big_payload + pad
-    # Pad must remain after JSON to bump bytes; but JSON must still parse, so
-    # embed padding as a vendor field inside the object instead.
-    pad_str = "P" * (10 * 1024 * 1024 - 80)
-    body = json.dumps(
-        {
-            "jobs": [],
-            "meta": {"total": 0},
-            "vendor_padding": pad_str,
-        }
-    ).encode("utf-8")
-    assert len(body) == 10 * 1024 * 1024 or len(body) <= 10 * 1024 * 1024
+    prefix = b'{"jobs":[],"meta":{"total":0},"vendor_padding":"'
+    suffix = b'"}'
+    body = prefix + b"P" * (MAX_RESPONSE_BYTES - len(prefix) - len(suffix)) + suffix
+    assert len(body) == MAX_RESPONSE_BYTES
 
     def handler(req):
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     result = asyncio.run(_run(handler))
-    # The body is exactly at or below the ceiling and parses; this should be
-    # a complete empty board.
-    if len(body) > 10 * 1024 * 1024:
-        pytest.skip("padding overflow")
     assert result.http_status == 200
     assert result.complete is True
 
@@ -1994,12 +2091,8 @@ def test_markdown_unescape_once_then_convert() -> None:
     def handler(req):
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
-    p = asyncio.run(_run(handler)).postings[0]
-    assert p.description_md.startswith("## Role")
-    # Single unescape collapses ``&amp;amp;`` to ``&amp;`` and the parser sees
-    # ``&amp;`` as a literal ``&`` text. Either way the second ``amp;`` string
-    # must not appear, proving we did not unescape twice.
-    assert "amp;amp;" not in p.description_md
+    md = asyncio.run(_run(handler)).postings[0].description_md
+    assert md == "## Role\n\nTom & Jerry"
 
 
 def test_markdown_paragraphs_headings_lists_links_emphasis() -> None:
@@ -2030,12 +2123,15 @@ def test_markdown_paragraphs_headings_lists_links_emphasis() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    assert "## About" in md
-    assert "**world**" in md
-    assert "*italic*" in md
-    assert "\n* A\n* B" in md or "\n* A\n* B\n" in md
-    assert "1. One" in md and "2. Two" in md
-    assert "[link](https://example.invalid/x)" in md
+    assert md == (
+        "## About\n\n"
+        "Hello **world** and *italic*.\n\n"
+        "* A\n"
+        "* B\n\n"
+        "1. One\n"
+        "2. Two\n\n"
+        "[link](https://example.invalid/x)"
+    )
 
 
 def test_markdown_br_converted_deterministically() -> None:
@@ -2061,7 +2157,7 @@ def test_markdown_br_converted_deterministically() -> None:
     # ``<br>`` yields a visible line break. markdownify emits a hard line
     # break (two trailing spaces + LF); the reviewed whitespace pass removes
     # trailing horizontal whitespace from every line, leaving a single LF.
-    assert "line one\nline two" == md
+    assert md == "line one\nline two"
 
 
 def test_markdown_collapses_three_plus_blank_lines_to_two() -> None:
@@ -2084,9 +2180,7 @@ def test_markdown_collapses_three_plus_blank_lines_to_two() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    # Three or more blank lines collapse to two.
-    assert "\n\n\n" not in md
-    assert "a\n\nb" in md
+    assert md == "a\n\nb"
 
 
 def test_markdown_crlf_and_cr_normalized_to_lf() -> None:
@@ -2109,7 +2203,7 @@ def test_markdown_crlf_and_cr_normalized_to_lf() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    assert "\r" not in md
+    assert md == "abc\ndef\nghi"
 
 
 def test_markdown_strips_trailing_horizontal_whitespace() -> None:
@@ -2132,7 +2226,7 @@ def test_markdown_strips_trailing_horizontal_whitespace() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    assert "   \n" not in md
+    assert md == "line one\n\nline two"
 
 
 def test_markdown_strips_leading_and_trailing_blank_lines_no_terminal_newline() -> None:
@@ -2156,8 +2250,6 @@ def test_markdown_strips_leading_and_trailing_blank_lines_no_terminal_newline() 
 
     md = asyncio.run(_run(handler)).postings[0].description_md
     assert md == "Hello"
-    assert not md.startswith("\n")
-    assert not md.endswith("\n")
 
 
 def test_markdown_script_and_style_content_not_visible() -> None:
@@ -2185,9 +2277,7 @@ def test_markdown_script_and_style_content_not_visible() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    assert "SECRET_SCRIPT_SENTINEL" not in md
-    assert "color: red" not in md
-    assert "Hello" in md and "after" in md
+    assert md == "Hello\n\nafter"
 
 
 def test_markdown_non_ascii_text_preserved() -> None:
@@ -2210,7 +2300,7 @@ def test_markdown_non_ascii_text_preserved() -> None:
         return httpx.Response(200, content=body, headers={"content-type": "application/json"})
 
     md = asyncio.run(_run(handler)).postings[0].description_md
-    assert "Café résumé naïve" in md
+    assert md == "Café résumé naïve"
 
 
 # --------------------------------------------------------------------
@@ -2266,31 +2356,52 @@ def test_transport_failure_raises_no_fetch_result() -> None:
     assert not isinstance(raised, FetchResult)
 
 
-def test_cancellation_propagates_and_does_not_become_transport_error() -> None:
+def test_cancellation_propagates_and_closes_response_and_owned_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    response_close_calls = []
+    client_close_calls = []
+    original_client_aclose = httpx.AsyncClient.aclose
+
+    async def tracking_client_aclose(client):
+        client_close_calls.append(client)
+        await original_client_aclose(client)
+
+    monkeypatch.setattr(httpx.AsyncClient, "aclose", tracking_client_aclose)
+
     async def driver():
-        started = asyncio.Event()
+        stream_started = asyncio.Event()
+        never_finish = asyncio.Event()
 
-        async def handler(req):
-            started.set()
-            await asyncio.sleep(3600)
-            return httpx.Response(200)
+        class BlockingStream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                stream_started.set()
+                await never_finish.wait()
+                yield b""
 
-        client = _client(handler)
-        adapter = GreenhouseAdapter(client=client)
+            async def aclose(self):
+                response_close_calls.append(self)
+
+        stream = BlockingStream()
+
+        def handler(req):
+            return httpx.Response(
+                200,
+                stream=stream,
+                headers={"content-type": "application/json"},
+            )
+
+        adapter = GreenhouseAdapter(transport=httpx.MockTransport(handler))
         task = asyncio.ensure_future(adapter.list_postings(STOP, ConditionalHeaders()))
-        await started.wait()
+        await stream_started.wait()
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
             await task
-        # The streamed response and the adapter-owned client must have been
-        # cleaned up deterministically. The injected client is still open here
-        # so the test owns its lifetime, but the streamed response produced by
-        # ``client.stream`` must not leak (verified by absence of resource
-        # warnings during the run).
 
     asyncio.run(driver())
-    # Cancellation propagated; not a transport failure: no GreenhouseTransportError
-    # was raised, so cancellation cannot authorize reconciliation.
+    assert len(response_close_calls) == 1
+    assert len(client_close_calls) == 1
+    assert client_close_calls[0].is_closed is True
 
 
 def test_adapter_closes_owned_client_on_success() -> None:
