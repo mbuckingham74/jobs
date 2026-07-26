@@ -1,0 +1,59 @@
+{
+  "jobs": [
+    {
+      "id": 403123,
+      "title": "Senior Backend Engineer",
+      "content": "&lt;h2&gt;About the role&lt;/h2&gt;\n&lt;p&gt;We are &lt;strong&gt;ForksTech Co&lt;/strong&gt;, a small synthetic company building job-board tooling. The engineer will own the daily queue service end-to-end.&lt;/p&gt;\n&lt;h3&gt;What you will do&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Design and ship the queue service&lt;/li&gt;\n&lt;li&gt;Pair with the research layer&lt;/li&gt;\n&lt;li&gt;Own the digest freeze step&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;Sentinel description text SYNTHETIC_COMPANY_ALPHA_ROLE_SENTINEL.&lt;/p&gt;",
+      "absolute_url": "https://boards.greenhouse.io/forksboard/jobs/403123?gh_src=test&t=apply#top",
+      "location": {
+        "name": "Remote - North America"
+      },
+      "departments": [
+        {"name": "Engineering"},
+        {"name": "Platform"}
+      ],
+      "first_published": "2026-07-02T08:15:30Z",
+      "updated_at": "2026-07-10T17:00:00+00:00",
+      "internal_job_id": 987654,
+      "requisition_id": "REQ-001",
+      "metadata": [
+        {"name": "employment_type", "value": "Full-Time"},
+        {"name": "compensation_range", "value": "$160k - $200k"}
+      ]
+    },
+    {
+      "id": 403100,
+      "title": "  Staff Site Reliability Engineer  ",
+      "content": "&lt;p&gt;SYNTHETIC_COMPANY_ALPHA_SRE_SENTINEL&lt;/p&gt;\n&lt;p&gt;The SRE will keep the daily queue warm and the digest frozen even under partial pipeline failures.&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Write runbooks&lt;/li&gt;\n&lt;li&gt;Reduce toil&lt;/li&gt;\n&lt;/ul&gt;",
+      "absolute_url": "https://boards.greenhouse.io/forksboard/jobs/403100?t=list#list",
+      "location": {
+        "name": "Anchorage, AK (Hybrid)"
+      },
+      "departments": [
+        {"name": ""},
+        {"name": "  Infrastructure   "}
+      ],
+      "first_published": "2026-06-25T11:00:00+02:00",
+      "updated_at": "2026-07-12T11:00:00+02:00",
+      "internal_job_id": 111222,
+      "metadata": [{"name": "employment_type", "value": "Full-Time"}]
+    },
+    {
+      "id": 403345,
+      "title": "Data Platform Engineer",
+      "content": "&lt;p&gt;SYNTHETIC_COMPANY_ALPHA_DATA_SENTINEL&lt;/p&gt;\n&lt;p&gt;Build the structured job-posting pipeline.&lt;/p&gt;\n&lt;ol&gt;\n&lt;li&gt;Ingest&lt;/li&gt;\n&lt;li&gt;Normalize&lt;/li&gt;\n&lt;li&gt;Score&lt;/li&gt;\n&lt;/ol&gt;",
+      "absolute_url": "https://boards.greenhouse.io/forksboard/jobs/403345",
+      "location": {
+        "name": ""
+      },
+      "departments": [],
+      "first_published": "2026-07-18T00:00:00Z",
+      "updated_at": "2026-07-18T00:00:00Z",
+      "internal_job_id": 333444,
+      "metadata": []
+    }
+  ],
+  "meta": {
+    "total": 3
+  }
+}
