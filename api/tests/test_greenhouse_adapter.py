@@ -2441,13 +2441,22 @@ def test_token_patterns_positive_cases(url, token) -> None:
         "https://job-boards.greenhouse.io/forksboard/jobs/..",
         "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/.",
         "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/..",
-        # Percent-encoded dot traversal (any case) is rejected as well.
+        # Percent-encoded dot traversal, all casing combinations of ``%2e`` and
+        # ``%2e%2e`` (including mixed case), is rejected as well — the scoped
+        # inline ``(?i:...)`` group makes the rejection genuinely
+        # case-insensitive without enumerating every casing.
         "https://boards.greenhouse.io/forksboard/jobs/%2e",
         "https://boards.greenhouse.io/forksboard/jobs/%2E",
         "https://boards.greenhouse.io/forksboard/jobs/%2e%2e",
         "https://boards.greenhouse.io/forksboard/jobs/%2E%2E",
+        "https://boards.greenhouse.io/forksboard/jobs/%2e%2E",
+        "https://boards.greenhouse.io/forksboard/jobs/%2E%2e",
         "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2E",
         "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e%2e",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2E%2E",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e%2E",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2E%2e",
         # A traversal segment followed by a query is still rejected; the
         # lookahead boundary covers ``[/?#]`` after the bad segment.
         "https://boards.greenhouse.io/forksboard/jobs/.?content=true",

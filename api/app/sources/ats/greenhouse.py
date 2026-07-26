@@ -578,13 +578,16 @@ class GreenhouseAdapter:
 _TOKEN_GROUP = r"(?P<token>[A-Za-z0-9][A-Za-z0-9_-]{0,127})"
 
 # A posting identifier path segment must not be a path-traversal literal. The
-# lookahead rejects an exact ``.``, ``..``, ``%2e``, ``%2E``, ``%2e%2e`` or
-# ``%2E%2E`` segment immediately under ``jobs`` before the segment is read by
-# ``[^/?#]+``. The boundary ``(?:[/?#]|$)`` keeps the lookahead anchored to the
-# segment (e.g. ``/.x`` or ``./jobs`` are still accepted where the grammar
+# lookahead rejects an exact ``.``, ``..``, or any casing of ``%2e`` /
+# ``%2e%2e`` segment immediately under ``jobs`` before the segment is read by
+# ``[^/?#]+``. The inline ``(?i:...)`` group makes the percent-encoded dot
+# forms genuinely case-insensitive without affecting the rest of the pattern
+# (every ``%2e``/``%2E``/``%2e%2e``/``%2E%2e``/``%2e%2E``/``%2E%2E`` combination
+# is rejected). The boundary ``(?:[/?#]|$)`` keeps the lookahead anchored to
+# the segment (e.g. ``/.x`` or ``./jobs`` are still accepted where the grammar
 # allows them). ``[^/?#]+`` excludes path-segment separators so a second
 # ``/`` (e.g. ``/jobs/123/extra``) cannot match the single-id suffix.
-_TRAVERSAL_LOOKAHEAD = r"(?!(?:\.|\.\.|%2e|%2E|%2e%2e|%2E%2E)" r"(?:[/?#]|$))"
+_TRAVERSAL_LOOKAHEAD = r"(?!(?:\.|\.\.|(?i:%2e|%2e%2e))(?:[/?#]|$))"
 
 # Suffix grammar shared by the board, job-boards, and API URL shapes:
 # optional ``/jobs[/{id}]`` path, optional trailing slash, optional query
