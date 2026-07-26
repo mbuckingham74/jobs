@@ -1,0 +1,5 @@
+{
+  "message": "Rate limit exceeded for synthetic board token.",
+  "error": "rate_limit",
+  "sentinel": "SYNTHETIC_RATE_LIMIT_BODY_SENTINEL"
+}
