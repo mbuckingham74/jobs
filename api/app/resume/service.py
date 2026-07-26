@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.resume.config import (
@@ -83,12 +83,23 @@ def sync_resume(
     now_fn: NowFn | None = None,
     logger: logging.Logger | None = None,
     fetch_outcome_override: FetchOutcome | None = None,
+    pre_fetch_validators_override: ConditionalValidators | None = None,
 ) -> ResumeSyncResult:
     """Run one resume-sync attempt and return a structured result.
 
-    Tests may inject ``fetcher``, ``extractor``, ``now_fn``, and a fixed
-    ``fetch_outcome_override`` so HTTP and PDF boundaries can be replaced
-    without live network access or synthetic PDF fixtures.
+    Tests may inject ``fetcher``, ``extractor``, ``now_fn``, a fixed
+    ``fetch_outcome_override``, and a ``pre_fetch_validators_override`` so HTTP,
+    PDF, and pre-fetch database-read boundaries can be replaced without live
+    network access or a disposable PostgreSQL database. The pre-fetch override
+    is a test seam: production callers leave it ``None`` so the real
+    ``resume_source_state`` row is read authoritatively.
+
+    A failed pre-fetch database read is a structured ``DB_ERROR`` returned
+    *before* any HTTP request is made: the next request's conditional headers
+    come only from the matching source-state row, and a read failure must not
+    silently collapse to "no source state". Database failures on the 304 and
+    200 write paths likewise surface as a structured ``DB_ERROR`` with the
+    session rolled back and closed and the engine disposed on every path.
     """
 
     log = logger or configure_logging()
@@ -99,7 +110,18 @@ def sync_resume(
     host = safe_hostname(settings.base_resume_url)
     log_event(log, "resume.sync.start", source_host=host, variant=settings.variant)
 
-    pre_fetch_validators = _read_pre_fetch_validators(settings, log)
+    if pre_fetch_validators_override is not None:
+        pre_fetch_validators = pre_fetch_validators_override
+    else:
+        try:
+            pre_fetch_validators = _read_pre_fetch_validators(settings, log)
+        except DatabaseError as exc:
+            log_event(log, "resume.sync.db.error", status="db_error", reason=exc.reason)
+            return ResumeSyncResult(
+                status=ResumeSyncStatus.DB_ERROR,
+                sent_validators=False,
+                error=_err(exc.reason),
+            )
     sent_validators = pre_fetch_validators.has_any
 
     if fetch_outcome_override is not None:
@@ -140,20 +162,26 @@ def sync_resume(
         )
 
     if fetch_outcome.kind is FetchOutcomeKind.NOT_MODIFIED:
-        result = _persist_not_modified(settings, fetch_outcome, now, sent_validators)
-        if result.status is ResumeSyncStatus.NOT_MODIFIED:
-            log_event(
-                log,
-                "resume.sync.not_modified",
-                status="not_modified",
-                source_host=host,
+        try:
+            result = _persist_not_modified(settings, fetch_outcome, now, sent_validators)
+        except DatabaseError as exc:
+            log_event(log, "resume.sync.db.error", status="db_error", reason=exc.reason)
+            return ResumeSyncResult(
+                status=ResumeSyncStatus.DB_ERROR,
                 http_status=304,
-                returned_validators=fetch_outcome.returned_validators,
                 sent_validators=sent_validators,
+                returned_validators=fetch_outcome.returned_validators,
+                error=_err(exc.reason),
             )
-        else:
-            db_reason = result.error.code if result.error else "db.error"
-            log_event(log, "resume.sync.db.error", status="db_error", reason=db_reason)
+        log_event(
+            log,
+            "resume.sync.not_modified",
+            status="not_modified",
+            source_host=host,
+            http_status=304,
+            returned_validators=fetch_outcome.returned_validators,
+            sent_validators=sent_validators,
+        )
         return result
 
     body = fetch_outcome.body or b""
@@ -205,6 +233,7 @@ def sync_resume(
         log_event(log, "resume.sync.db.error", status="db_error", reason=exc.reason)
         return ResumeSyncResult(
             status=ResumeSyncStatus.DB_ERROR,
+            http_status=200,
             sent_validators=sent_validators,
             returned_validators=fetch_outcome.returned_validators,
             error=_err(exc.reason),
@@ -233,25 +262,26 @@ def _read_pre_fetch_validators(
 ) -> ConditionalValidators:
     """Read the matching source-state row's validators for the next request.
 
-    Never raises: a pre-fetch read failure (unreachable database, invalid
-    connection string, transient query error) is treated as "no validators"
-    so sync proceeds as an unconditional request against an unobserved source.
-    The write transaction surfaces the real database error if the database is
-    genuinely unavailable.
+    Raises :class:`DatabaseError` on any database failure so the caller returns
+    a structured ``DB_ERROR`` *before* making any HTTP request — the next
+    request's conditional headers come only from the matching
+    ``resume_source_state`` row, and a read failure must never silently
+    collapse to "no source state". The engine is disposed on every path so a
+    pre-fetch failure leaks no connection.
+
+    Only :class:`SQLAlchemyError` (a genuine database/connection error) is
+    converted; non-database programming errors propagate untouched.
     """
 
-    try:
-        engine = make_engine(settings.database_url)
-    except DatabaseError as exc:
-        log_event(log, "resume.sync.db.invalid_url", reason=exc.reason, status="db_error")
-        return ConditionalValidators()
+    del log  # caller logs the structured DB_ERROR; this read is silent on success
+    engine = make_engine(settings.database_url)  # may raise DatabaseError("db.invalid_url")
     try:
         with engine.connect() as conn:
             row = conn.execute(_select_state_stmt(settings)).mappings().first()
-    except Exception:  # noqa: BLE001 - Pre-fetch read failure surfaces as no validators
+    except SQLAlchemyError:
+        raise DatabaseError("db.read_error") from None
+    finally:
         engine.dispose()
-        return ConditionalValidators()
-    engine.dispose()
     if row is None:
         return ConditionalValidators()
     return ConditionalValidators(
@@ -304,6 +334,20 @@ def _persist_not_modified(
     now: NowFn,
     sent_validators: bool,
 ) -> ResumeSyncResult:
+    """Persist a ``304 Not Modified`` source-state update under the
+    transaction-scoped advisory lock.
+
+    Raises :class:`DatabaseError` on any database failure so the caller emits a
+    structured ``DB_ERROR``. The session is closed and the engine is disposed
+    on every path via ``finally``; a failed transaction is rolled back by
+    ``session.begin()``'s context manager before ``finally`` runs. Only
+    :class:`SQLAlchemyError` is converted; non-database programming errors
+    propagate untouched, and a :class:`DatabaseError` raised by
+    :func:`make_engine` (``db.invalid_url``) propagates after cleanup.
+    """
+
+    engine: Any = None
+    session: Any = None
     try:
         engine, session = _open_locked_session(settings)
         with session.begin():
@@ -316,27 +360,25 @@ def _persist_not_modified(
                 session,
                 state_id=state["id"],
                 etag=fetch_outcome.etag,
+                etag_returned=fetch_outcome.etag_returned,
                 last_modified=fetch_outcome.last_modified,
-                validator_returned=fetch_outcome.returned_validators,
+                last_modified_returned=fetch_outcome.last_modified_returned,
                 last_checked_at=now(),
                 updated_at=now(),
             )
-        session.close()
-        engine.dispose()
         return ResumeSyncResult(
             status=ResumeSyncStatus.NOT_MODIFIED,
             http_status=304,
             sent_validators=sent_validators,
             returned_validators=fetch_outcome.returned_validators,
         )
-    except DatabaseError as exc:
-        return ResumeSyncResult(
-            status=ResumeSyncStatus.DB_ERROR,
-            http_status=304,
-            sent_validators=sent_validators,
-            returned_validators=fetch_outcome.returned_validators,
-            error=_err(exc.reason),
-        )
+    except SQLAlchemyError:
+        raise DatabaseError("db.write_error") from None
+    finally:
+        if session is not None:
+            session.close()
+        if engine is not None:
+            engine.dispose()
 
 
 def _persist_ok(
@@ -348,11 +390,20 @@ def _persist_ok(
     sent_validators: bool,
 ) -> ResumeSyncResult:
     """Run the locked persistence. Surfaces :class:`_ProvenanceConflict` and
-    :class:`IntegrityError` to the caller for retry/structured-outcome
-    handling."""
+    :class:`DatabaseError` to the caller for structured-outcome handling.
 
-    engine, session = _open_locked_session(settings)
+    Cleanup is guaranteed on every path: the session is closed and the engine
+    disposed in ``finally``. A failed transaction is rolled back before the
+    ``finally`` runs (either explicitly, or implicitly by the connection
+    transaction ending in error). Only :class:`SQLAlchemyError` is converted to
+    :class:`DatabaseError`; :class:`_ProvenanceConflict` (an app signal) and
+    non-database programming errors propagate untouched.
+    """
+
+    engine: Any = None
+    session: Any = None
     try:
+        engine, session = _open_locked_session(settings)
         result = _locked_decide_and_persist(
             session, settings, fetch_outcome, extraction, raw_sha256, now, sent_validators
         )
@@ -363,7 +414,8 @@ def _persist_ok(
         # normally serialize this path; an integrity race from an out-of-band
         # insert is reconciled to an unchanged-content or staged-inactive
         # outcome.
-        session.rollback()
+        if session is not None:
+            session.rollback()
         try:
             result = _locked_decide_and_persist(
                 session, settings, fetch_outcome, extraction, raw_sha256, now, sent_validators
@@ -371,20 +423,30 @@ def _persist_ok(
             session.commit()
             return result
         except IntegrityError:
-            session.rollback()
+            if session is not None:
+                session.rollback()
             raise DatabaseError("db.integrity_unresolved") from None
         except _ProvenanceConflict:
-            session.rollback()
+            if session is not None:
+                session.rollback()
             raise
+        except SQLAlchemyError:
+            if session is not None:
+                session.rollback()
+            raise DatabaseError("db.write_error") from None
     except _ProvenanceConflict:
-        session.rollback()
+        if session is not None:
+            session.rollback()
         raise
-    except DatabaseError:
-        session.rollback()
-        raise
+    except SQLAlchemyError:
+        if session is not None:
+            session.rollback()
+        raise DatabaseError("db.write_error") from None
     finally:
-        session.close()
-        engine.dispose()
+        if session is not None:
+            session.close()
+        if engine is not None:
+            engine.dispose()
 
 
 def _locked_decide_and_persist(

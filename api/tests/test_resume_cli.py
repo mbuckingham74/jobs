@@ -44,7 +44,7 @@ def test_cli_config_error_exit_code_and_json() -> None:
 
 
 def test_cli_fetch_rejected_exit_nonzero() -> None:
-    from app.resume.fetch import FetchOutcome, FetchOutcomeKind
+    from app.resume.fetch import ConditionalValidators, FetchOutcome, FetchOutcomeKind
 
     out = io.StringIO()
     code = run_once(
@@ -58,6 +58,7 @@ def test_cli_fetch_rejected_exit_nonzero() -> None:
             http_status=500,
             reason="fetcher.non_200_status",
         ),
+        pre_fetch_validators_override=ConditionalValidators(),
     )
     payload = json.loads(out.getvalue())
     assert code == EXIT_FAILURE
@@ -66,7 +67,7 @@ def test_cli_fetch_rejected_exit_nonzero() -> None:
 
 
 def test_cli_fetch_error_exit_nonzero() -> None:
-    from app.resume.fetch import FetchOutcome, FetchOutcomeKind
+    from app.resume.fetch import ConditionalValidators, FetchOutcome, FetchOutcomeKind
 
     out = io.StringIO()
     code = run_once(
@@ -79,6 +80,7 @@ def test_cli_fetch_error_exit_nonzero() -> None:
             kind=FetchOutcomeKind.ERROR,
             reason="fetcher.connect_timeout",
         ),
+        pre_fetch_validators_override=ConditionalValidators(),
     )
     payload = json.loads(out.getvalue())
     assert code == EXIT_FAILURE
@@ -87,7 +89,7 @@ def test_cli_fetch_error_exit_nonzero() -> None:
 
 def test_cli_extraction_rejected_exit_nonzero() -> None:
     from app.resume.extract import ExtractionRejection
-    from app.resume.fetch import FetchOutcome, FetchOutcomeKind
+    from app.resume.fetch import ConditionalValidators, FetchOutcome, FetchOutcomeKind
 
     out = io.StringIO()
     code = run_once(
@@ -103,6 +105,7 @@ def test_cli_extraction_rejected_exit_nonzero() -> None:
             body=b"%PDF-1.4 " + b"x" * 91,  # 9 + 91 == 100 bytes
             fetched_at=None,
         ),
+        pre_fetch_validators_override=ConditionalValidators(),
         extractor=lambda body: ExtractionRejection(
             code="extraction.document_too_few_letters",
             page_count=1,

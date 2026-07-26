@@ -74,10 +74,11 @@ def ok_outcome(
         kind=FetchOutcomeKind.OK,
         http_status=200,
         etag=etag,
+        etag_returned=etag is not None,
         last_modified=last_modified,
+        last_modified_returned=last_modified is not None,
         byte_count=len(body),
         body=body,
-        returned_validators=(etag is not None) or (last_modified is not None),
         sent_validators=False,
         fetched_at=datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
     )
@@ -90,8 +91,9 @@ def not_modified_outcome(
         kind=FetchOutcomeKind.NOT_MODIFIED,
         http_status=304,
         etag=etag,
+        etag_returned=etag is not None,
         last_modified=last_modified,
-        returned_validators=(etag is not None) or (last_modified is not None),
+        last_modified_returned=last_modified is not None,
         sent_validators=True,
         fetched_at=datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
     )

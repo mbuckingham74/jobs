@@ -88,15 +88,18 @@ def run_once(
     fetcher: Any | None = None,
     extractor: Any | None = None,
     fetch_outcome_override: Any | None = None,
+    pre_fetch_validators_override: Any | None = None,
 ) -> int:
     """Run one sync attempt and return the process exit code.
 
     ``argv`` is accepted so a future flag surface can be added without changing
     the entry-point signature. ``environ``, ``stdout``, and ``stderr`` let
     tests exercise the CLI without monkeypatching global state. ``fetcher``,
-    ``extractor``, and ``fetch_outcome_override`` are passed straight through to
-    :func:`app.resume.service.sync_resume` so tests can replace the HTTP and
-    PDF boundaries without live network access or synthetic PDF fixtures.
+    ``extractor``, ``fetch_outcome_override``, and
+    ``pre_fetch_validators_override`` are passed straight through to
+    :func:`app.resume.service.sync_resume` so tests can replace the HTTP, PDF,
+    and pre-fetch database-read boundaries without live network access or a
+    disposable PostgreSQL database.
     """
 
     out = stdout or sys.stdout
@@ -130,6 +133,7 @@ def run_once(
         fetcher=fetcher,
         extractor=extractor,
         fetch_outcome_override=fetch_outcome_override,
+        pre_fetch_validators_override=pre_fetch_validators_override,
     )
     out.write(json.dumps(result_to_payload(result), sort_keys=True) + "\n")
     out.flush()

@@ -75,18 +75,33 @@ class FetchOutcome:
 
     ``body`` is only set for a successful ``200 OK`` outcome and is consumed
     immediately by the extraction step; CLI/log serialization never touches it.
+
+    Validator presence is tracked *independently* so a 304 that returns only an
+    ETag (or only a Last-Modified) updates only the validator the response
+    actually returned and preserves the other stored value. ``etag_returned``
+    is True iff the response carried an ``ETag`` header; ``last_modified_returned``
+    is True iff the response carried a parseable ``Last-Modified`` value. The
+    :attr:`returned_validators` aggregate property is kept for stable log
+    fields and matches the closed boolean the CLI/JSON payload exposes.
     """
 
     kind: FetchOutcomeKind
     http_status: int | None = None
     etag: str | None = None
+    etag_returned: bool = False
     last_modified: datetime | None = None
+    last_modified_returned: bool = False
     byte_count: int = 0
     body: bytes | None = None
     fetched_at: datetime | None = None
     reason: str = ""
     sent_validators: bool = False
-    returned_validators: bool = False
+
+    @property
+    def returned_validators(self) -> bool:
+        """Aggregate boolean: either validator was returned by the response."""
+
+        return self.etag_returned or self.last_modified_returned
 
 
 class _RedirectLoop(Exception):
@@ -152,8 +167,19 @@ def _build_headers(validators: ConditionalValidators) -> tuple[dict[str, str], b
     return headers, sent
 
 
-def _returned_validators(etag: str | None, last_modified: datetime | None) -> bool:
-    return etag is not None or last_modified is not None
+def _validator_returned_flags(
+    etag: str | None, last_modified: datetime | None
+) -> tuple[bool, bool]:
+    """Return ``(etag_returned, last_modified_returned)`` for an HTTP response.
+
+    ``etag_returned`` is True iff the ETag header was present (``etag`` is not
+    None — httpx returns ``None`` for an absent header). ``last_modified_returned``
+    is True iff the ``Last-Modified`` header was present AND parseable to a
+    timezone-aware datetime (a malformed timestamp carries no usable validator
+    and is treated as not-returned so the existing stored value is preserved).
+    """
+
+    return etag is not None, last_modified is not None
 
 
 def _safe_http_error_reason(exc: httpx.HTTPError) -> str:
@@ -374,12 +400,14 @@ def _not_modified(response: httpx.Response, sent_validators: bool) -> FetchOutco
     etag = response.headers.get("etag")
     lm_header = response.headers.get("last-modified")
     last_modified = _parse_http_date(lm_header) if lm_header else None
+    etag_returned, last_modified_returned = _validator_returned_flags(etag, last_modified)
     return FetchOutcome(
         kind=FetchOutcomeKind.NOT_MODIFIED,
         http_status=304,
         etag=etag,
+        etag_returned=etag_returned,
         last_modified=last_modified,
-        returned_validators=_returned_validators(etag, last_modified),
+        last_modified_returned=last_modified_returned,
         sent_validators=sent_validators,
         fetched_at=datetime.now(UTC),
     )
@@ -393,14 +421,16 @@ def _ok(
     etag = response.headers.get("etag")
     lm_header = response.headers.get("last-modified")
     last_modified = _parse_http_date(lm_header) if lm_header else None
+    etag_returned, last_modified_returned = _validator_returned_flags(etag, last_modified)
     return FetchOutcome(
         kind=FetchOutcomeKind.OK,
         http_status=200,
         etag=etag,
+        etag_returned=etag_returned,
         last_modified=last_modified,
+        last_modified_returned=last_modified_returned,
         byte_count=len(body),
         body=body,
-        returned_validators=_returned_validators(etag, last_modified),
         sent_validators=sent_validators,
         fetched_at=datetime.now(UTC),
     )

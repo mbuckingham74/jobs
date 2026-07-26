@@ -135,28 +135,34 @@ def update_source_state_on_304(
     *,
     state_id: int,
     etag: str | None,
+    etag_returned: bool,
     last_modified: datetime | None,
-    validator_returned: bool,
+    last_modified_returned: bool,
     last_checked_at: datetime,
     updated_at: datetime,
 ) -> None:
     """Apply a ``304 Not Modified`` source-state update.
 
-    Update ``last_checked_at`` and ``updated_at`` always; replace only
-    validators the response actually returned. An absent validator preserves
-    the existing value (``unset`` below), and ``last_body_sha256``,
+    Update ``last_checked_at`` and ``updated_at`` always; replace *only* each
+    validator the response actually returned. A validator that the response did
+    not return is preserved by simply not being included in the ``UPDATE`` —
+    it is never cleared to NULL on a 304. ``last_body_sha256``,
     ``last_body_fetched_at``, and ``current_resume_version_id`` are never
     touched on a 304.
+
+    The two independent ``*_returned`` booleans carry validator presence
+    separately from the validator *values*: a 304 returning only an ETag sets
+    ``etag_returned=True`` and ``last_modified_returned=False`` so the stored
+    ``source_last_modified`` is left untouched, and vice-versa.
     """
 
     values: dict[str, Any] = {
         "last_checked_at": last_checked_at,
         "updated_at": updated_at,
     }
-    if validator_returned:
-        # Replace only the validators actually returned. The other (absent)
-        # validator is preserved by simply not being included in the update.
+    if etag_returned:
         values["source_etag"] = etag
+    if last_modified_returned:
         values["source_last_modified"] = last_modified
     session.execute(
         update(resume_source_state_table)

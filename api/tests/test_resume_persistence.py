@@ -295,6 +295,104 @@ def test_304_updates_returned_validators_preserves_absent(postgres_engine) -> No
     assert after["current_resume_version_id"] is not None
 
 
+def test_304_etag_only_updates_etag_preserves_last_modified(postgres_engine) -> None:
+    """A 304 returning only an ETag must update the stored ETag and leave the
+    stored Last-Modified untouched. The previous aggregate-flag implementation
+    cleared Last-Modified here; the independent ``etag_returned`` /
+    ``last_modified_returned`` flags prevent that. Body hash, body fetch
+    timestamp, and the version pointer must also be unchanged on a 304.
+    """
+    settings = settings_for()
+    seeded_lm = datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC)
+    sync_resume(
+        settings,
+        fetch_outcome_override=ok_outcome(b"body-a", etag='"v1"', last_modified=seeded_lm),
+        extractor=lambda body: make_extraction_result(CONTENT_A),
+    )
+    with postgres_engine.connect() as conn:
+        before = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+    assert before["source_etag"] == '"v1"'
+    assert before["source_last_modified"] == seeded_lm
+
+    result = sync_resume(
+        settings,
+        fetch_outcome_override=not_modified_outcome(etag='"v2"'),  # no Last-Modified
+    )
+    assert result.status is ResumeSyncStatus.NOT_MODIFIED
+    with postgres_engine.connect() as conn:
+        after = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+    assert after["source_etag"] == '"v2"'  # updated
+    assert after["source_last_modified"] == seeded_lm  # preserved
+    assert after["last_body_sha256"] == before["last_body_sha256"]
+    assert after["last_body_fetched_at"] == before["last_body_fetched_at"]
+    assert after["current_resume_version_id"] == before["current_resume_version_id"]
+    assert after["updated_at"] > before["updated_at"]
+
+
+def test_304_last_modified_only_updates_last_modified_preserves_etag(postgres_engine) -> None:
+    """A 304 returning only a Last-Modified must update the stored
+    Last-Modified and leave the stored ETag untouched (the inverse of the
+    ETag-only case). Body hash, body fetch timestamp, and the version pointer
+    must also be unchanged on a 304.
+    """
+    settings = settings_for()
+    seeded_lm_v1 = datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC)
+    new_lm = datetime(2026, 7, 2, 9, 30, 0, tzinfo=UTC)
+    sync_resume(
+        settings,
+        fetch_outcome_override=ok_outcome(b"body-a", etag='"v1"', last_modified=seeded_lm_v1),
+        extractor=lambda body: make_extraction_result(CONTENT_A),
+    )
+    with postgres_engine.connect() as conn:
+        before = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+
+    result = sync_resume(
+        settings,
+        fetch_outcome_override=not_modified_outcome(last_modified=new_lm),  # no ETag
+    )
+    assert result.status is ResumeSyncStatus.NOT_MODIFIED
+    with postgres_engine.connect() as conn:
+        after = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+    assert after["source_etag"] == '"v1"'  # preserved
+    assert after["source_last_modified"] == new_lm  # updated
+    assert after["last_body_sha256"] == before["last_body_sha256"]
+    assert after["last_body_fetched_at"] == before["last_body_fetched_at"]
+    assert after["current_resume_version_id"] == before["current_resume_version_id"]
+    assert after["updated_at"] > before["updated_at"]
+
+
+def test_304_neither_validator_preserves_both(postgres_engine) -> None:
+    """A 304 returning neither validator must preserve both stored ETag and
+    stored Last-Modified while advancing ``last_checked_at``/``updated_at``.
+    Body hash, body fetch timestamp, and the version pointer must also be
+    unchanged.
+    """
+    settings = settings_for()
+    seeded_lm = datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC)
+    sync_resume(
+        settings,
+        fetch_outcome_override=ok_outcome(b"body-a", etag='"v1"', last_modified=seeded_lm),
+        extractor=lambda body: make_extraction_result(CONTENT_A),
+    )
+    with postgres_engine.connect() as conn:
+        before = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+
+    result = sync_resume(
+        settings,
+        fetch_outcome_override=not_modified_outcome(),  # no ETag, no Last-Modified
+    )
+    assert result.status is ResumeSyncStatus.NOT_MODIFIED
+    with postgres_engine.connect() as conn:
+        after = dict(conn.execute(select(repo.resume_source_state_table)).mappings().first())
+    assert after["source_etag"] == '"v1"'  # preserved
+    assert after["source_last_modified"] == seeded_lm  # preserved
+    assert after["last_body_sha256"] == before["last_body_sha256"]
+    assert after["last_body_fetched_at"] == before["last_body_fetched_at"]
+    assert after["current_resume_version_id"] == before["current_resume_version_id"]
+    assert after["last_checked_at"] >= before["last_checked_at"]
+    assert after["updated_at"] > before["updated_at"]
+
+
 def test_200_with_no_validators_clears_validators_and_updates_body(
     postgres_engine,
 ) -> None:

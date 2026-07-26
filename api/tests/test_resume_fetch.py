@@ -147,6 +147,63 @@ def test_not_modified_no_validators_returned() -> None:
     assert outcome.etag is None
     assert outcome.last_modified is None
     assert outcome.returned_validators is False
+    assert outcome.etag_returned is False
+    assert outcome.last_modified_returned is False
+
+
+def test_not_modified_etag_only_marks_etag_returned() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(304, headers={"etag": '"e-only"'})
+
+    client = _client(handler)
+    outcome = fetch_resume(URL, max_bytes=10 * 1024 * 1024, client=client)
+    assert outcome.kind is FetchOutcomeKind.NOT_MODIFIED
+    assert outcome.etag == '"e-only"'
+    assert outcome.etag_returned is True
+    assert outcome.last_modified is None
+    assert outcome.last_modified_returned is False
+    # Aggregate boolean stays True so the CLI/log payload shape is unchanged.
+    assert outcome.returned_validators is True
+
+
+def test_not_modified_last_modified_only_marks_last_modified_returned() -> None:
+    lm = datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(304, headers={"last-modified": format_datetime(lm, usegmt=True)})
+
+    client = _client(handler)
+    outcome = fetch_resume(URL, max_bytes=10 * 1024 * 1024, client=client)
+    assert outcome.kind is FetchOutcomeKind.NOT_MODIFIED
+    assert outcome.etag is None
+    assert outcome.etag_returned is False
+    assert outcome.last_modified == lm
+    assert outcome.last_modified_returned is True
+    assert outcome.returned_validators is True
+
+
+def test_ok_sets_independent_validator_flags() -> None:
+    lm = datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=_GOOD_BODY,
+            headers={
+                "content-type": "application/pdf",
+                "etag": '"ok-e"',
+                "last-modified": format_datetime(lm, usegmt=True),
+            },
+        )
+
+    client = _client(handler)
+    outcome = fetch_resume(URL, max_bytes=10 * 1024 * 1024, client=client)
+    assert outcome.kind is FetchOutcomeKind.OK
+    assert outcome.etag == '"ok-e"'
+    assert outcome.etag_returned is True
+    assert outcome.last_modified == lm
+    assert outcome.last_modified_returned is True
+    assert outcome.returned_validators is True
 
 
 def test_valid_200_returns_body_and_byte_count() -> None:

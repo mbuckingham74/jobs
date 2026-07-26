@@ -103,13 +103,8 @@ def test_log_line_for_fetch_rejection_omits_secrets() -> None:
         _make_settings_no_db(),
         logger=logger,
         fetch_outcome_override=outcome,
+        pre_fetch_validators_override=ConditionalValidators(),
     )
-    # The fetcher override short-circuits pre-fetch DB read failing? No: the
-    # pre-fetch read happens before the fetch override. We use a credential in
-    # the DB URL; the pre-fetch read attempts connection and fails silently to
-    # ConditionalValidators (caught by the broad except). To avoid a real
-    # connection attempt, disable the pre-fetch read by pointing the DB at a
-    # closed port so it fails fast without leaking the password in a log.
     _assert_no_secrets(buf.getvalue())
     assert result.status is ResumeSyncStatus.FETCH_REJECTED
 
@@ -132,6 +127,7 @@ def test_log_line_for_extraction_rejection_omits_excerpt() -> None:
         _make_settings_no_db(),
         logger=logger,
         fetch_outcome_override=outcome,
+        pre_fetch_validators_override=ConditionalValidators(),
         extractor=lambda raw: ExtractionRejection(
             code="extraction.page_no_letters_or_numbers",
             page_index=0,
