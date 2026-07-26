@@ -122,12 +122,7 @@ def upgrade() -> None:
     op.create_table(
         "source_endpoint",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "company_id",
-            sa.BigInteger,
-            sa.ForeignKey("company.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("company_id", sa.BigInteger, nullable=False),
         sa.Column("kind", sa.Text, nullable=False),
         sa.Column("token", sa.Text, nullable=False),
         sa.Column(
@@ -152,6 +147,12 @@ def upgrade() -> None:
             server_default=sa.text("0"),
         ),
         sa.Column("retired_at", sa.TIMESTAMP(timezone=True)),
+        sa.ForeignKeyConstraint(
+            ["company_id"],
+            ["company.id"],
+            name="source_endpoint_company_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.CheckConstraint(_SOURCE_ENDPOINT_KIND_CHECK, name="source_endpoint_kind_check"),
         sa.CheckConstraint(_SOURCE_ENDPOINT_STATUS_CHECK, name="source_endpoint_status_check"),
         sa.UniqueConstraint(
@@ -187,18 +188,8 @@ def upgrade() -> None:
     op.create_table(
         "source_fetch",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "run_id",
-            sa.BigInteger,
-            sa.ForeignKey("pipeline_run.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "endpoint_id",
-            sa.BigInteger,
-            sa.ForeignKey("source_endpoint.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("run_id", sa.BigInteger, nullable=False),
+        sa.Column("endpoint_id", sa.BigInteger, nullable=False),
         sa.Column("status", sa.Text, nullable=False),
         sa.Column("http_status", sa.Integer),
         sa.Column("postings_seen", sa.Integer, nullable=False, server_default=sa.text("0")),
@@ -219,6 +210,18 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.Column("finished_at", sa.TIMESTAMP(timezone=True)),
+        sa.ForeignKeyConstraint(
+            ["run_id"],
+            ["pipeline_run.id"],
+            name="source_fetch_run_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["endpoint_id"],
+            ["source_endpoint.id"],
+            name="source_fetch_endpoint_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.CheckConstraint(_SOURCE_FETCH_STATUS_CHECK, name="source_fetch_status_check"),
         sa.UniqueConstraint("run_id", "endpoint_id", name="source_fetch_run_id_endpoint_id_key"),
     )
@@ -226,18 +229,8 @@ def upgrade() -> None:
     op.create_table(
         "posting",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "company_id",
-            sa.BigInteger,
-            sa.ForeignKey("company.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "source_endpoint_id",
-            sa.BigInteger,
-            sa.ForeignKey("source_endpoint.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("company_id", sa.BigInteger, nullable=False),
+        sa.Column("source_endpoint_id", sa.BigInteger, nullable=False),
         sa.Column("external_id", sa.Text, nullable=False),
         sa.Column("title", sa.Text, nullable=False),
         sa.Column("title_norm", sa.Text, nullable=False),
@@ -268,10 +261,24 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.Column("closed_at", sa.TIMESTAMP(timezone=True)),
-        sa.Column(
-            "duplicate_of_id",
-            sa.BigInteger,
-            sa.ForeignKey("posting.id", ondelete="SET NULL"),
+        sa.Column("duplicate_of_id", sa.BigInteger),
+        sa.ForeignKeyConstraint(
+            ["company_id"],
+            ["company.id"],
+            name="posting_company_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["source_endpoint_id"],
+            ["source_endpoint.id"],
+            name="posting_source_endpoint_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["duplicate_of_id"],
+            ["posting.id"],
+            name="posting_duplicate_of_id_fkey",
+            ondelete="SET NULL",
         ),
         sa.UniqueConstraint(
             "source_endpoint_id",
@@ -283,18 +290,8 @@ def upgrade() -> None:
     op.create_table(
         "posting_version",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "posting_id",
-            sa.BigInteger,
-            sa.ForeignKey("posting.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "observed_in_run_id",
-            sa.BigInteger,
-            sa.ForeignKey("pipeline_run.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("posting_id", sa.BigInteger, nullable=False),
+        sa.Column("observed_in_run_id", sa.BigInteger, nullable=False),
         sa.Column("content_hash", sa.Text, nullable=False),
         sa.Column("title", sa.Text, nullable=False),
         sa.Column(
@@ -313,6 +310,18 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
+        sa.ForeignKeyConstraint(
+            ["posting_id"],
+            ["posting.id"],
+            name="posting_version_posting_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["observed_in_run_id"],
+            ["pipeline_run.id"],
+            name="posting_version_observed_in_run_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.UniqueConstraint(
             "posting_id",
             "content_hash",
@@ -330,11 +339,7 @@ def upgrade() -> None:
         sa.Column("source_etag", sa.Text),
         sa.Column("source_last_modified", sa.TIMESTAMP(timezone=True)),
         sa.Column("source_fetched_at", sa.TIMESTAMP(timezone=True)),
-        sa.Column(
-            "parent_resume_version_id",
-            sa.BigInteger,
-            sa.ForeignKey("resume_version.id", ondelete="RESTRICT"),
-        ),
+        sa.Column("parent_resume_version_id", sa.BigInteger),
         sa.Column("content_hash", sa.Text, nullable=False),
         sa.Column("content_md", sa.Text, nullable=False),
         sa.Column(
@@ -348,6 +353,12 @@ def upgrade() -> None:
             sa.TIMESTAMP(timezone=True),
             nullable=False,
             server_default=sa.text("now()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["parent_resume_version_id"],
+            ["resume_version.id"],
+            name="resume_version_parent_resume_version_id_fkey",
+            ondelete="RESTRICT",
         ),
         sa.CheckConstraint(_RESUME_VARIANT_CHECK, name="resume_version_variant_check"),
         sa.CheckConstraint(_RESUME_SOURCE_KIND_CHECK, name="resume_version_source_kind_check"),
@@ -385,18 +396,8 @@ def upgrade() -> None:
     op.create_table(
         "company_research",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "company_id",
-            sa.BigInteger,
-            sa.ForeignKey("company.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "run_id",
-            sa.BigInteger,
-            sa.ForeignKey("pipeline_run.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("company_id", sa.BigInteger, nullable=False),
+        sa.Column("run_id", sa.BigInteger, nullable=False),
         sa.Column("content_hash", sa.Text, nullable=False),
         sa.Column("model_id", sa.Text, nullable=False),
         sa.Column("prompt_version", sa.Text, nullable=False),
@@ -420,6 +421,18 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
+        sa.ForeignKeyConstraint(
+            ["company_id"],
+            ["company.id"],
+            name="company_research_company_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id"],
+            ["pipeline_run.id"],
+            name="company_research_run_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.UniqueConstraint(
             "company_id",
             "content_hash",
@@ -430,33 +443,11 @@ def upgrade() -> None:
     op.create_table(
         "score",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "run_id",
-            sa.BigInteger,
-            sa.ForeignKey("pipeline_run.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "posting_version_id",
-            sa.BigInteger,
-            sa.ForeignKey("posting_version.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "resume_version_id",
-            sa.BigInteger,
-            sa.ForeignKey("resume_version.id", ondelete="RESTRICT"),
-        ),
-        sa.Column(
-            "candidate_profile_version_id",
-            sa.BigInteger,
-            sa.ForeignKey("candidate_profile_version.id", ondelete="RESTRICT"),
-        ),
-        sa.Column(
-            "company_research_id",
-            sa.BigInteger,
-            sa.ForeignKey("company_research.id", ondelete="RESTRICT"),
-        ),
+        sa.Column("run_id", sa.BigInteger, nullable=False),
+        sa.Column("posting_version_id", sa.BigInteger, nullable=False),
+        sa.Column("resume_version_id", sa.BigInteger),
+        sa.Column("candidate_profile_version_id", sa.BigInteger),
+        sa.Column("company_research_id", sa.BigInteger),
         sa.Column("stage", sa.Text, nullable=False),
         sa.Column("model_id", sa.Text),
         sa.Column("prompt_version", sa.Text),
@@ -483,6 +474,36 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
+        sa.ForeignKeyConstraint(
+            ["run_id"],
+            ["pipeline_run.id"],
+            name="score_run_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["posting_version_id"],
+            ["posting_version.id"],
+            name="score_posting_version_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["resume_version_id"],
+            ["resume_version.id"],
+            name="score_resume_version_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["candidate_profile_version_id"],
+            ["candidate_profile_version.id"],
+            name="score_candidate_profile_version_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["company_research_id"],
+            ["company_research.id"],
+            name="score_company_research_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.CheckConstraint(_SCORE_STAGE_CHECK, name="score_stage_check"),
         sa.CheckConstraint(_SCORE_VERDICT_CHECK, name="score_verdict_check"),
         sa.CheckConstraint(
@@ -505,17 +526,18 @@ def upgrade() -> None:
         "daily_digest",
         sa.Column("id", sa.BigInteger, primary_key=True),
         sa.Column("digest_on", sa.Date, nullable=False),
-        sa.Column(
-            "run_id",
-            sa.BigInteger,
-            sa.ForeignKey("pipeline_run.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("run_id", sa.BigInteger, nullable=False),
         sa.Column(
             "frozen_at",
             sa.TIMESTAMP(timezone=True),
             nullable=False,
             server_default=sa.text("now()"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id"],
+            ["pipeline_run.id"],
+            name="daily_digest_run_id_fkey",
+            ondelete="RESTRICT",
         ),
         sa.UniqueConstraint("digest_on", name="daily_digest_digest_on_key"),
     )
@@ -523,24 +545,9 @@ def upgrade() -> None:
     op.create_table(
         "digest_item",
         sa.Column("id", sa.BigInteger, primary_key=True),
-        sa.Column(
-            "digest_id",
-            sa.BigInteger,
-            sa.ForeignKey("daily_digest.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "posting_id",
-            sa.BigInteger,
-            sa.ForeignKey("posting.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "score_id",
-            sa.BigInteger,
-            sa.ForeignKey("score.id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
+        sa.Column("digest_id", sa.BigInteger, nullable=False),
+        sa.Column("posting_id", sa.BigInteger, nullable=False),
+        sa.Column("score_id", sa.BigInteger, nullable=False),
         sa.Column("rank", sa.Integer, nullable=False),
         sa.Column(
             "state",
@@ -550,6 +557,24 @@ def upgrade() -> None:
         ),
         sa.Column("carry_until", sa.Date),
         sa.Column("skip_reason", sa.Text),
+        sa.ForeignKeyConstraint(
+            ["digest_id"],
+            ["daily_digest.id"],
+            name="digest_item_digest_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["posting_id"],
+            ["posting.id"],
+            name="digest_item_posting_id_fkey",
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["score_id"],
+            ["score.id"],
+            name="digest_item_score_id_fkey",
+            ondelete="RESTRICT",
+        ),
         sa.CheckConstraint(_DIGEST_ITEM_RANK_CHECK, name="digest_item_rank_check"),
         sa.CheckConstraint(_DIGEST_ITEM_STATE_CHECK, name="digest_item_state_check"),
         sa.UniqueConstraint("digest_id", "rank", name="digest_item_digest_id_rank_key"),

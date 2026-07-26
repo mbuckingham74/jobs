@@ -11,6 +11,7 @@ disposable PostgreSQL 16 + pgvector instance by
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import re
 from collections.abc import Callable
@@ -156,3 +157,60 @@ def test_no_out_of_scope_tables_are_created(revision_source: str) -> None:
     assert created.isdisjoint(out_of_scope)
     dropped = set(_dropped_tables(revision_source))
     assert dropped.isdisjoint(out_of_scope)
+
+
+# Every foreign key in the Phase 1 schema must be declared with an explicit,
+# stable ``name=`` so later migrations and schema tests can refer to it. The
+# task forbids inline ``sa.ForeignKey`` columns precisely because SQLAlchemy
+# would synthesise a PostgreSQL-style name at create time but leave the
+# migration source silent about it. These counts cover all 20 reference
+# columns across the 12 tables, including the resume_version self-reference.
+EXPECTED_NAMED_FOREIGN_KEYS = 20
+
+
+def _collect_calls(tree: ast.AST) -> list[ast.Call]:
+    return [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
+
+
+def _attr_chain(node: ast.Call) -> str:
+    parts: list[str] = []
+    current: ast.expr = node.func
+    while isinstance(current, ast.Attribute):
+        parts.append(current.attr)
+        current = current.value
+    if isinstance(current, ast.Name):
+        parts.append(current.id)
+    return ".".join(reversed(parts))
+
+
+def test_every_foreign_key_has_an_explicit_stable_name(revision_path: Path) -> None:
+    tree = ast.parse(revision_path.read_text())
+    fkc_calls = [c for c in _collect_calls(tree) if _attr_chain(c) == "sa.ForeignKeyConstraint"]
+    assert fkc_calls, "no sa.ForeignKeyConstraint calls found; FKs must be named"
+
+    unnamed: list[str] = []
+    for call in fkc_calls:
+        keywords = {kw.arg for kw in call.keywords}
+        if "name" not in keywords:
+            unnamed.append(ast.unparse(call))
+    assert (
+        not unnamed
+    ), f"every ForeignKeyConstraint must pass an explicit name=; unnamed: {unnamed}"
+    assert len(fkc_calls) == EXPECTED_NAMED_FOREIGN_KEYS, (
+        f"expected {EXPECTED_NAMED_FOREIGN_KEYS} named foreign keys, found " f"{len(fkc_calls)}"
+    )
+
+
+def test_no_inline_unnamed_sa_foreign_key_columns(revision_path: Path) -> None:
+    # An inline ``sa.ForeignKey`` inside a ``sa.Column`` would let SQLAlchemy
+    # synthesise the constraint name at create time and leave the migration
+    # source silent about it. The task requires every FK to be declared as a
+    # named ``sa.ForeignKeyConstraint`` instead.
+    tree = ast.parse(revision_path.read_text())
+    inline_fk_calls = [
+        ast.unparse(c) for c in _collect_calls(tree) if _attr_chain(c) == "sa.ForeignKey"
+    ]
+    assert not inline_fk_calls, (
+        f"inline sa.ForeignKey columns are not allowed; use a named "
+        f"sa.ForeignKeyConstraint instead. Found: {inline_fk_calls}"
+    )
