@@ -574,9 +574,11 @@ def test_relative_redirect_resolved_against_current_url() -> None:
 
 def test_query_relative_redirect_resolved() -> None:
     calls = {"n": 0}
+    seen_urls = []
 
     def handler(req):
         calls["n"] += 1
+        seen_urls.append(str(req.url))
         if calls["n"] == 1:
             return httpx.Response(302, headers={"location": "?content=true"})
         return httpx.Response(
@@ -585,6 +587,146 @@ def test_query_relative_redirect_resolved() -> None:
 
     result = asyncio.run(_run(handler))
     assert result.http_status == 200
+    # urljoin replaces the current query string with the new one but keeps the
+    # path on the safe origin.
+    assert calls["n"] == 2
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+    )
+
+
+def test_dotdot_relative_redirect_resolved_on_safe_origin() -> None:
+    """``../`` traversal must be resolved standards-compliantly and still
+    pass the exact-origin guard when the resolved target remains on
+    ``boards-api.greenhouse.io``. ``urljoin`` removes one trailing path
+    segment per ``../``."""
+
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(302, headers={"location": "../forksboard/jobs?content=true"})
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert calls["n"] == 2
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+    )
+
+
+def test_dotdot_redirect_resolves_on_same_origin_with_popped_segments() -> None:
+    """``../../`` is resolved standards-compliantly with
+    :func:`urllib.parse.urljoin`: two segments are popped from the base path
+    before the new path is appended. The resolved target stays on the exact
+    Greenhouse API origin and is followed; from
+    ``/v1/boards/forksboard/jobs`` ``../../v1/boards/other/jobs`` resolves to
+    ``/v1/v1/boards/other/jobs`` (one board-segment plus the new ``v1``
+    prefix)."""
+
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(
+                302, headers={"location": "../../v1/boards/other/jobs?content=true"}
+            )
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert seen_urls[1] == ("https://boards-api.greenhouse.io/v1/v1/boards/other/jobs?content=true")
+
+
+def test_dot_relative_redirect_resolved_against_current_path() -> None:
+    """A ``./`` reference resolves against the current segment's directory,
+    standards-compliant with :func:`urllib.parse.urljoin`."""
+
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(302, headers={"location": "./jobs?content=true"})
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+    )
+
+
+def test_fragment_only_redirect_preserves_origin_and_path() -> None:
+    """A fragment-only ``Location`` is standards-compliant: it reuses the
+    current URL but with a new fragment. The origin guard still accepts
+    the same-host target."""
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(302, headers={"location": "#section"})
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert calls["n"] == 2
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true#section"
+    )
+
+
+def test_scheme_relative_redirect_keeps_origin() -> None:
+    """A ``//host/path`` scheme-relative ``Location`` inherits the current
+    scheme and keeps the request on the safe origin when the host matches."""
+
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(
+                302,
+                headers={
+                    "location": "//boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+                },
+            )
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+    )
 
 
 def test_exactly_three_redirects_followed() -> None:
@@ -1678,6 +1820,86 @@ def test_posting_url_must_be_http_or_https() -> None:
     assert result.complete is False
 
 
+@pytest.mark.parametrize(
+    "absolute_url",
+    [
+        # ``urlparse`` raises ``ValueError`` on a malformed IPv6 literal; the
+        # posting row must be invalid rather than raise.
+        "https://[::1:bad/jobs/2001",
+        # Malformed port string raises ``ValueError`` on ``parsed.port``; the
+        # row must be invalid rather than raise.
+        "https://boards.greenhouse.io:not-a-port/x/jobs/2001",
+        "http://boards.greenhouse.io:abc/x/jobs/2001",
+        # Missing host rejects the URL.
+        "https:///jobs/2001",
+        "https://",
+        # Credential-bearing URLs are rejected.
+        "https://user:pw@boards.greenhouse.io/x/jobs/2001",
+        "https://user@boards.greenhouse.io/x/jobs/2001",
+    ],
+)
+def test_public_url_rejects_malformed_or_credential_bearing_values(absolute_url) -> None:
+    body = json.dumps(
+        {
+            "jobs": [
+                {
+                    "id": 2001,
+                    "title": "Eng",
+                    "content": "<p>x</p>",
+                    "absolute_url": absolute_url,
+                }
+            ],
+            "meta": {"total": 1},
+        }
+    ).encode("utf-8")
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    # The posting row is invalid rather than raising an uncaught URL error;
+    # the whole fetch is incomplete because one row was skipped.
+    assert result.postings == []
+    assert result.complete is False
+    assert result.http_status == 200
+
+
+@pytest.mark.parametrize(
+    "absolute_url",
+    [
+        # Any explicit port that parses is accepted — the contract only
+        # forbids embedded credentials and a missing host.
+        "https://boards.greenhouse.io:443/x/jobs/2001",
+        "https://boards.greenhouse.io:8443/x/jobs/2001",
+        "http://boards.greenhouse.io:80/x/jobs/2001",
+        "http://boards.greenhouse.io:8080/x/jobs/2001",
+    ],
+)
+def test_public_url_accepts_any_parsable_explicit_port(absolute_url) -> None:
+    body = json.dumps(
+        {
+            "jobs": [
+                {
+                    "id": 2001,
+                    "title": "Eng",
+                    "content": "<p>SYNTHETIC_PUBLIC_URL_PORT_SENTINEL</p>",
+                    "absolute_url": absolute_url,
+                }
+            ],
+            "meta": {"total": 1},
+        }
+    ).encode("utf-8")
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert len(result.postings) == 1
+    assert result.postings[0].posting_url == absolute_url
+    assert result.postings[0].apply_url == absolute_url
+    assert result.complete is True
+
+
 # --------------------------------------------------------------------
 # raw snapshot preservation
 # --------------------------------------------------------------------
@@ -2211,6 +2433,26 @@ def test_token_patterns_positive_cases(url, token) -> None:
         "https://boards.greenhouse.io/embed/job_board?other=x&for=forksboard",
         # A space in a fragment terminates the bounded fragment class.
         "https://boards.greenhouse.io/forksboard#frag space",
+        # Literal path-traversal segments immediately under ``/jobs`` are
+        # rejected for every URL shape that exposes a posting-id segment.
+        "https://boards.greenhouse.io/forksboard/jobs/.",
+        "https://boards.greenhouse.io/forksboard/jobs/..",
+        "https://job-boards.greenhouse.io/forksboard/jobs/.",
+        "https://job-boards.greenhouse.io/forksboard/jobs/..",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/.",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/..",
+        # Percent-encoded dot traversal (any case) is rejected as well.
+        "https://boards.greenhouse.io/forksboard/jobs/%2e",
+        "https://boards.greenhouse.io/forksboard/jobs/%2E",
+        "https://boards.greenhouse.io/forksboard/jobs/%2e%2e",
+        "https://boards.greenhouse.io/forksboard/jobs/%2E%2E",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e%2e",
+        # A traversal segment followed by a query is still rejected; the
+        # lookahead boundary covers ``[/?#]`` after the bad segment.
+        "https://boards.greenhouse.io/forksboard/jobs/.?content=true",
+        "https://boards.greenhouse.io/forksboard/jobs/..?content=true",
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/%2e?content=true",
     ],
 )
 def test_token_patterns_negative_cases(url) -> None:
@@ -2220,6 +2462,36 @@ def test_token_patterns_negative_cases(url) -> None:
         if p.match(url) and not matched:
             matched = p.match(url)
     assert matched is None, f"unexpected match on {url}"
+
+
+@pytest.mark.parametrize(
+    "url,token",
+    [
+        # ``/jobs/{id}`` where ``{id}`` is a normal segment still matches; the
+        # traversal rejection only targets the literal ``.``, ``..`` and the
+        # percent-encoded dot forms, not ordinary postings IDs.
+        ("https://boards.greenhouse.io/forksboard/jobs/abc", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/123", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/abc/", "forksboard"),
+        ("https://job-boards.greenhouse.io/forksboard/jobs/abc", "forksboard"),
+        ("https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/abc", "forksboard"),
+        ("https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/abc/", "forksboard"),
+        # A regular non-traversal segment that contains ``%2e`` mixed with
+        # other characters (e.g. ``%2efoobar``) is not a path-traversal literal
+        # and still matches: the lookahead rejects only an exact ``%2e``,
+        # ``%2e%2e``, ``%2E``, ``%2E%2E``, ``.``, or ``..`` segment.
+        ("https://boards.greenhouse.io/forksboard/jobs/%2efoobar", "forksboard"),
+    ],
+)
+def test_token_patterns_accepts_non_traversal_posting_ids(url, token) -> None:
+    patterns = GreenhouseAdapter().token_patterns()
+    matched = None
+    for p in patterns:
+        m = p.match(url)
+        if m and not matched:
+            matched = m
+    assert matched is not None, f"expected match on {url}"
+    assert matched.groupdict().get("token") == token
 
 
 # --------------------------------------------------------------------

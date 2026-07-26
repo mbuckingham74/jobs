@@ -41,7 +41,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any, Final
-from urllib.parse import urlparse, urlunsplit
+from urllib.parse import urljoin, urlparse, urlunsplit
 
 import httpx
 from markdownify import markdownify
@@ -195,26 +195,20 @@ def _is_safe_origin(url: str) -> bool:
 def _join_location(base: str, location: str) -> str:
     """Resolve a (possibly relative) ``Location`` header against the current URL.
 
+    Uses the standards-compliant :func:`urllib.parse.urljoin` so the resolver
+    handles ``../``, ``./``, root-relative (``/path``), query-relative
+    (``?query``), scheme-relative (``//host``), and fragment-only (``#frag``)
+    references the same way web clients do. ``urljoin`` returns the absolute
+    URL string directly; the existing exact-origin validation in
+    :func:`_is_safe_origin` still gates whether the resolved URL may be
+    followed.
+
     May raise :class:`ValueError` on malformed URLs; callers must catch it and
     return an incomplete fetch result rather than letting an uncaught URL error
     propagate.
     """
 
-    if "://" in location:
-        # Absolute Location: keep its own scheme/host/path/query/fragment.
-        return location.split("#", 1)[0] if "#" in location else location
-    parsed_base = urlparse(base)
-    if location.startswith("//"):
-        target = f"{parsed_base.scheme}:{location}"
-        return target.split("#", 1)[0] if "#" in target else target
-    if location.startswith("/"):
-        roll = f"{parsed_base.scheme}://{parsed_base.netloc}{location}"
-    elif location.startswith("?"):
-        roll = f"{parsed_base.scheme}://{parsed_base.netloc}{parsed_base.path}{location}"
-    else:
-        base_dir = parsed_base.path.rsplit("/", 1)[0] + "/"
-        roll = f"{parsed_base.scheme}://{parsed_base.netloc}{base_dir}{location}"
-    return roll.split("#", 1)[0] if "#" in roll else roll
+    return urljoin(base, location)
 
 
 def _transport_category(exc: httpx.HTTPError) -> str:
@@ -583,15 +577,26 @@ class GreenhouseAdapter:
 
 _TOKEN_GROUP = r"(?P<token>[A-Za-z0-9][A-Za-z0-9_-]{0,127})"
 
+# A posting identifier path segment must not be a path-traversal literal. The
+# lookahead rejects an exact ``.``, ``..``, ``%2e``, ``%2E``, ``%2e%2e`` or
+# ``%2E%2E`` segment immediately under ``jobs`` before the segment is read by
+# ``[^/?#]+``. The boundary ``(?:[/?#]|$)`` keeps the lookahead anchored to the
+# segment (e.g. ``/.x`` or ``./jobs`` are still accepted where the grammar
+# allows them). ``[^/?#]+`` excludes path-segment separators so a second
+# ``/`` (e.g. ``/jobs/123/extra``) cannot match the single-id suffix.
+_TRAVERSAL_LOOKAHEAD = r"(?!(?:\.|\.\.|%2e|%2E|%2e%2e|%2E%2E)" r"(?:[/?#]|$))"
+
 # Suffix grammar shared by the board, job-boards, and API URL shapes:
 # optional ``/jobs[/{id}]`` path, optional trailing slash, optional query
 # string, and optional fragment. The query exclusion of ``#`` and the
 # fragment exclusion of whitespace keep the match bounded so a trailing URL
 # cannot absorb the next line of a comment block, but every documented suffix
 # form (single board link, listing link, single posting link, query, fragment,
-# or query + fragment) is recognised.
+# or query + fragment) is recognised. The ``/jobs/{id}`` segment rejects
+# literal path-traversal segments (``.``, ``..``) and their percent-encoded
+# dot forms (``%2e``, ``%2e%2e``, any case) per Task 004 section 7.
 _BOARD_SUFFIX = (
-    r"(?:/(?:jobs(?:/[^/?#]+)?)?)?/?"  # optional /jobs[/{id}] and trailing /
+    rf"(?:/(?:jobs(?:/{_TRAVERSAL_LOOKAHEAD}[^/?#]+)?)?)?/?"
     r"(?:\?[^?#]*)?"  # optional query string
     r"(?:#[^?\s]*)?$"  # optional fragment, anchored
 )
@@ -621,6 +626,7 @@ _PATTERN_EMBED: Final[re.Pattern[str]] = re.compile(
 
 _PATTERN_API: Final[re.Pattern[str]] = re.compile(
     rf"^https://boards-api\.greenhouse\.io/v1/boards/{_TOKEN_GROUP}/jobs"
+    rf"(?:/{_TRAVERSAL_LOOKAHEAD}[^/?#]+)?"  # optional single posting id
     rf"/?"  # optional trailing slash
     rf"(?:\?[^?#]*)?"  # optional query string
     rf"(?:#[^?\s]*)?$"  # optional fragment, anchored
@@ -801,14 +807,35 @@ def _normalize_job(job: dict[str, Any]) -> RawPosting | None:
 
 
 def _public_url(value: object) -> str | None:
+    """Accept an HTTP/HTTPS ``absolute_url`` string with a host and no embedded
+    credentials, or return ``None`` so an invalid row is skipped rather than
+    raised.
+
+    :func:`urllib.parse.urlparse` raises :class:`ValueError` on a malformed
+    IPv6 literal, and ``parsed.port`` raises ``ValueError`` on a non-integer
+    port string; both make the posting row invalid. Any explicit port that
+    parses is accepted — the contract only forbids embedded credentials and a
+    missing host; ports are not restricted here. Query string and fragment are
+    preserved exactly as supplied.
+    """
+
     if not isinstance(value, str):
         return None
-    parsed = urlparse(value)
+    try:
+        parsed = urlparse(value)
+    except ValueError:
+        # Malformed URL (e.g. broken IPv6 literal). Fail closed.
+        return None
     if parsed.scheme not in ("http", "https"):
         return None
     if parsed.username or parsed.password:
         return None
     if not parsed.hostname:
+        return None
+    try:
+        _ = parsed.port
+    except ValueError:
+        # Malformed port string (e.g. ``:abc``). Fail closed.
         return None
     # Preserve query string and fragment exactly as supplied.
     return value
