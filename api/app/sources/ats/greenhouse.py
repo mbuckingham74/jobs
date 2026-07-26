@@ -11,8 +11,11 @@ HTTP policy lives entirely in this module:
 
 - explicit timeouts of 5 s for connect/write/pool and 30 s for read;
 - a fixed descriptive user agent and ``Accept: application/json``;
-- conditional validators forwarded only on the initial request and never to a
-  redirect hop;
+- conditional validators forwarded on the initial request and on every
+   followed redirect hop (all followed targets are restricted to the exact
+   Greenhouse API origin so the validators remain effective across hops);
+   cross-origin or unsafe redirect targets are rejected before the next
+   request is issued, so the validators cannot travel to an off-origin target;
 - manual redirect following capped at three hops of types 301, 302, 303, 307,
   and 308; every followed target must remain on the exact
   ``https://boards-api.greenhouse.io`` origin with the default HTTPS port and
@@ -110,11 +113,13 @@ _TRANSPORT_CATEGORIES: Final[dict[type[httpx.HTTPError], str]] = {
     httpx.LocalProtocolError: "greenhouse.transport.protocol_error",
 }
 
-# Bare redirect-hop headers (UA + Accept only, no conditional validators).
-_BARE_HEADERS: Final[dict[str, str]] = {
-    "User-Agent": _USER_AGENT,
-    "Accept": _ACCEPT,
-}
+# Redirect-hop request headers. Cross-origin redirects are rejected by the
+# origin guard before the next request is issued, so every followed hop stays
+# on the exact Greenhouse API origin and the conditional validators may — and
+# must — remain effective on the followed request. The same header dict built
+# for the initial request is reused on every hop: UA, Accept, and any non-null
+# conditional validators the caller carried. The caller's
+# :class:`ConditionalHeaders` value is not mutated.
 
 # Token-recognition patterns: shared compiled pattern objects returned (as
 # fresh lists) by ``GreenhouseAdapter.token_patterns()``. Defined after the
@@ -155,17 +160,32 @@ def _is_safe_origin(url: str) -> bool:
     """True iff ``url`` is on the exact origin, default HTTPS port, no creds.
 
     Hostname comparison is exact so a lookalike host such as
-    ``boards-api.greenhouse.io.example.com`` cannot match. An explicit non-
-    default port is rejected (alternate ports and lookalike endpoints). The
-    presence of userinfo rejects a credential-bearing target.
+    ``boards-api.greenhouse.io.example.com`` cannot match. The omitted port and
+    the explicit HTTPS port ``443`` are accepted as the same origin; every other
+    explicit port is rejected (alternate ports and lookalike endpoints).
+    Malformed URLs and invalid-port strings make this fail closed (return
+    ``False``) rather than raise, so the caller can report an incomplete
+    fetch instead of an uncaught URL error. The presence of userinfo rejects a
+    credential-bearing target.
     """
 
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        # Malformed URL (e.g. broken IPv6 literal). Fail closed.
+        return False
     if parsed.scheme != _ORIGIN_SCHEME:
         return False
     if parsed.hostname != _ORIGIN_HOST:
         return False
-    if parsed.port is not None:
+    try:
+        port = parsed.port
+    except ValueError:
+        # Malformed port string (e.g. ``:abc``). Fail closed.
+        return False
+    # The omitted port and an explicit ``:443`` are the same origin; every
+    # other explicit port is rejected.
+    if port is not None and port != 443:
         return False
     if parsed.username or parsed.password:
         return False
@@ -173,7 +193,12 @@ def _is_safe_origin(url: str) -> bool:
 
 
 def _join_location(base: str, location: str) -> str:
-    """Resolve a (possibly relative) ``Location`` header against the current URL."""
+    """Resolve a (possibly relative) ``Location`` header against the current URL.
+
+    May raise :class:`ValueError` on malformed URLs; callers must catch it and
+    return an incomplete fetch result rather than letting an uncaught URL error
+    propagate.
+    """
 
     if "://" in location:
         # Absolute Location: keep its own scheme/host/path/query/fragment.
@@ -205,6 +230,61 @@ def _final_validators(response: httpx.Response) -> dict[str, str | None]:
     return {"etag": etag, "last_modified": last_modified}
 
 
+async def _strip_unsafe_redirect_location(response: httpx.Response) -> None:
+    """Response event hook that strips malformed or off-origin ``Location``
+    headers from 3xx redirect responses before :mod:`httpx` tries to build the
+    next request from them.
+
+    :mod:`httpx` validates the ``Location`` of any 3xx redirect during
+    ``send`` so it can populate ``response.next_request`` even when
+    ``follow_redirects=False``. A malformed URL (broken port string, broken
+    IPv6 literal) raises :class:`httpx.RemoteProtocolError` before the manual
+    redirect loop in :meth:`GreenhouseAdapter._follow_and_read` can see the
+    response and fail closed with the actual redirect status; an off-origin
+    redirect slips past that check as a well-formed URL that should also be
+    rejected here so the manual loop sees an empty ``Location`` instead. This
+    hook runs before :mod:`httpx`'s ``has_redirect_location`` check, so
+    stripping the header is sufficient to keep :mod:`httpx` from raising.
+    """
+
+    if response.status_code not in _REDIRECT_STATUSES:
+        return
+    location = response.headers.get("location", "")
+    if not location or not location.strip():
+        # The manual loop already treats an empty Location as incomplete; strip
+        # any whitespace-only header so :mod:`httpx` does not see a redirect.
+        if "location" in response.headers:
+            del response.headers["location"]
+        return
+    base = str(response.request.url) if response.request else ""
+    try:
+        resolved = _join_location(base, location)
+        safe = _is_safe_origin(resolved)
+    except ValueError:
+        safe = False
+    if not safe:
+        # Strip the Location so :mod:`httpx`'s ``has_redirect_location`` is
+        # False and ``_build_redirect_request`` is never called; the manual
+        # redirect loop's ``_resolve_redirect`` will then read an empty
+        # Location and return ``None``, surfacing an incomplete
+        # :class:`FetchResult` with the actual redirect status.
+        if "location" in response.headers:
+            del response.headers["location"]
+
+
+def _install_location_hook(client: httpx.AsyncClient) -> None:
+    """Append the location-prevalidation hook to a user-supplied client.
+
+    Idempotent: re-installing an already-prepared client is a no-op so the
+    adapter can be constructed against the same client across tests without
+    stacking the hook.
+    """
+
+    hooks = client._event_hooks.setdefault("response", [])
+    if _strip_unsafe_redirect_location not in hooks:
+        hooks.append(_strip_unsafe_redirect_location)
+
+
 class GreenhouseAdapter:
     """Asynchronous Greenhouse board fetcher implementing :class:`ATSAdapter`."""
 
@@ -224,11 +304,27 @@ class GreenhouseAdapter:
         When ``client`` is ``None`` the adapter owns a client bound to the
         optional ``transport`` with the explicit timeout, redirect, and user
         agent settings from this module and closes it on every return path.
+
+        Either way, the redirect-location pre-validation hook
+        (:func:`_strip_unsafe_redirect_location`) is installed on the client so
+        :mod:`httpx`'s own send path does not raise on a malformed ``Location``
+        header before the manual redirect loop can fail closed. Stripping an
+        unsafe or malformed ``Location`` is the same fail-closed outcome the
+        manual loop reports: an incomplete :class:`FetchResult` carrying the
+        actual redirect status.
         """
 
-        self._client = client
         self._transport = transport
         self._owns_client = client is None
+        if client is not None:
+            # Install the redirect-location pre-validation hook on the
+            # user-supplied client so a malformed or off-origin Location does
+            # not trigger httpx's own validation (which would raise before our
+            # manual redirect loop can fail closed with the actual status).
+            _install_location_hook(client)
+            self._client = client
+        else:
+            self._client = None
 
     # -- Transport seam ------------------------------------------------
 
@@ -243,6 +339,7 @@ class GreenhouseAdapter:
                     pool=_POOL_TIMEOUT,
                 ),
                 follow_redirects=False,
+                event_hooks={"response": [_strip_unsafe_redirect_location]},
             )
         return self._client
 
@@ -331,17 +428,19 @@ class GreenhouseAdapter:
         self,
         client: httpx.AsyncClient,
         url: str,
-        initial_headers: dict[str, str],
+        headers: dict[str, str],
     ) -> FetchResult:
         current = url
         redirects = 0
-        first = True
         # Open each response as a streaming reader so the byte ceiling can abort
         # mid-body. ``async with``-style entry/finally is manual because the
         # redirect loop spans multiple responses; each one is closed either
         # after a hop or by the ``finally`` for the final/result path.
+        # The same request headers are sent on every hop: followed redirects
+        # stay on the exact Greenhouse API origin (cross-origin targets are
+        # rejected by the origin guard before a request is issued), so the
+        # conditional validators must remain effective after a redirect.
         while True:
-            headers = initial_headers if first else _BARE_HEADERS
             response = await client.stream("GET", current, headers=headers).__aenter__()
             try:
                 status = response.status_code
@@ -371,7 +470,6 @@ class GreenhouseAdapter:
                         )
                     redirects += 1
                     current = next_url
-                    first = False
                     continue
                 # Non-redirect: read a single terminal body with the byte ceiling.
                 result = await self._read_outcome(response, redirect_count=redirects)
@@ -399,7 +497,13 @@ class GreenhouseAdapter:
             # is treated as incomplete with the actual redirect status.
             return None
         base = str(response.request.url)
-        next_url = _join_location(base, location)
+        try:
+            next_url = _join_location(base, location)
+        except ValueError:
+            # Malformed Location/header URL. Fail closed and report the
+            # redirect as incomplete with the actual status rather than raising
+            # an uncaught URL error.
+            return None
         if not _is_safe_origin(next_url):
             return None
         return next_url
@@ -479,26 +583,47 @@ class GreenhouseAdapter:
 
 _TOKEN_GROUP = r"(?P<token>[A-Za-z0-9][A-Za-z0-9_-]{0,127})"
 
-# Pattern 1: https://boards.greenhouse.io/{token} — anchor host exactly with
-# etiquette: optional trailing slash, query, or fragment; the host boundary is
-# ``$`` after the token so ``boards.greenhouse.io.example.com`` cannot match.
-# We accept optional suffixes (trailing slash, /jobs, /jobs/{id}, query,
-# fragment) so a comment may link to a single posting on the board.
+# Suffix grammar shared by the board, job-boards, and API URL shapes:
+# optional ``/jobs[/{id}]`` path, optional trailing slash, optional query
+# string, and optional fragment. The query exclusion of ``#`` and the
+# fragment exclusion of whitespace keep the match bounded so a trailing URL
+# cannot absorb the next line of a comment block, but every documented suffix
+# form (single board link, listing link, single posting link, query, fragment,
+# or query + fragment) is recognised.
+_BOARD_SUFFIX = (
+    r"(?:/(?:jobs(?:/[^/?#]+)?)?)?/?"  # optional /jobs[/{id}] and trailing /
+    r"(?:\?[^?#]*)?"  # optional query string
+    r"(?:#[^?\s]*)?$"  # optional fragment, anchored
+)
+
+# Pattern 1: https://boards.greenhouse.io/{token} — host boundary anchored with
+# ``$`` after the token's suffix block so ``boards.greenhouse.io.example.com``
+# cannot match. Optional trailing slash, ``/jobs[/{id}]`` path, query, and
+# fragment are accepted so a comment may link to a single posting on the board.
 _PATTERN_BOARDS: Final[re.Pattern[str]] = re.compile(
-    rf"^https://boards\.greenhouse\.io/{_TOKEN_GROUP}" rf"(?:/(?:jobs(?:/[^/?#]+)?)?)?/?$"
+    rf"^https://boards\.greenhouse\.io/{_TOKEN_GROUP}{_BOARD_SUFFIX}"
 )
 
 _PATTERN_JOB_BOARDS: Final[re.Pattern[str]] = re.compile(
-    rf"^https://job-boards\.greenhouse\.io/{_TOKEN_GROUP}" rf"(?:/(?:jobs(?:/[^/?#]+)?)?)?/?$"
+    rf"^https://job-boards\.greenhouse\.io/{_TOKEN_GROUP}{_BOARD_SUFFIX}"
 )
 
 _PATTERN_EMBED: Final[re.Pattern[str]] = re.compile(
-    r"^https://boards\.greenhouse\.io/embed/job_board"
-    r"(?:\?for=(?P<token>[A-Za-z0-9][A-Za-z0-9_-]{0,127}))?$"
+    # The embed form must carry a non-empty ``for={token}`` query parameter that
+    # matches the adapter token grammar. Missing tokens never match: the
+    # ``\?for=...`` group is mandatory (not optional). Optional trailing slash
+    # before the query, additional query parameters after ``for=``, and an
+    # optional fragment are accepted.
+    rf"^https://boards\.greenhouse\.io/embed/job_board/?\?for={_TOKEN_GROUP}"
+    rf"(?:&[^?#]*)?"
+    rf"(?:#[^?\s]*)?$"
 )
 
 _PATTERN_API: Final[re.Pattern[str]] = re.compile(
-    rf"^https://boards-api\.greenhouse\.io/v1/boards/{_TOKEN_GROUP}/jobs$"
+    rf"^https://boards-api\.greenhouse\.io/v1/boards/{_TOKEN_GROUP}/jobs"
+    rf"/?"  # optional trailing slash
+    rf"(?:\?[^?#]*)?"  # optional query string
+    rf"(?:#[^?\s]*)?$"  # optional fragment, anchored
 )
 
 
@@ -571,9 +696,20 @@ def _parse_payload(text: str, response: httpx.Response) -> FetchResult:
     if meta is not None and not isinstance(meta, dict):
         return _incomplete(response)
     if isinstance(meta, dict):
-        total = meta.get("total")
-        if isinstance(total, bool) or not isinstance(total, int) or total < 0 or total != len(jobs):
-            return _incomplete(response)
+        # Inspect ``meta.total`` only when the ``total`` key is present. A
+        # present non-integer, a Boolean, a negative, or a mismatched total
+        # makes the response incomplete; an absent ``total`` (e.g. an empty
+        # ``meta={}``) does not — only the ``jobs`` rows decide completeness
+        # then.
+        if "total" in meta:
+            total = meta["total"]
+            if (
+                isinstance(total, bool)
+                or not isinstance(total, int)
+                or total < 0
+                or total != len(jobs)
+            ):
+                return _incomplete(response)
     postings: list[RawPosting] = []
     skipped = False
     for job in jobs:

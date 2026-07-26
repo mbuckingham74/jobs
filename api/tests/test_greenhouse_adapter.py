@@ -686,6 +686,104 @@ def test_alternate_port_redirect_rejected() -> None:
     assert result.complete is False
 
 
+def test_explicit_https_port_443_redirect_followed_as_same_origin() -> None:
+    """An explicit ``:443`` is the same origin as an omitted port over HTTPS."""
+
+    calls = {"n": 0}
+    seen_urls = []
+
+    def handler(req):
+        calls["n"] += 1
+        seen_urls.append(str(req.url))
+        if calls["n"] == 1:
+            return httpx.Response(
+                302,
+                headers={
+                    "location": (
+                        "https://boards-api.greenhouse.io:443/v1/boards/"
+                        "forksboard/jobs?content=true"
+                    )
+                },
+            )
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert calls["n"] == 2
+    # The followed target carried an explicit ``:443``; httpx normalises the
+    # default HTTPS port out of the displayed URL string, so the second
+    # request URL is the canonical same-origin path on the reportable URL.
+    assert seen_urls[1] == (
+        "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+    )
+
+
+@pytest.mark.parametrize("port", ["80", "8080", "9000", "65535"])
+def test_alternate_explicit_port_redirect_rejected(port) -> None:
+    def handler(req):
+        return httpx.Response(
+            302,
+            headers={
+                "location": (
+                    f"https://boards-api.greenhouse.io:{port}/v1/boards/"
+                    f"forksboard/jobs?content=true"
+                )
+            },
+        )
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 302
+    assert result.complete is False
+    assert result.postings == []
+
+
+def test_malformed_port_redirect_returns_incomplete_fetch_result() -> None:
+    """A malformed port string (e.g. ``:abc``) makes the URL parser raise
+    ``ValueError`` when reading ``parsed.port``. The adapter must catch it and
+    return an incomplete :class:`FetchResult` rather than letting an uncaught
+    URL error escape as a transport failure."""
+
+    def handler(req):
+        return httpx.Response(
+            302,
+            headers={
+                "location": (
+                    "https://boards-api.greenhouse.io:not-a-port/v1/boards/"
+                    "forksboard/jobs?content=true"
+                )
+            },
+        )
+
+    result = asyncio.run(_run(handler))
+    assert isinstance(result, FetchResult)
+    assert result.http_status == 302
+    assert result.complete is False
+    assert result.postings == []
+
+
+def test_malformed_ipv6_redirect_returns_incomplete_fetch_result() -> None:
+    """A broken IPv6 literal in a redirect target fails URL parsing. The
+    adapter returns an incomplete :class:`FetchResult` rather than raising."""
+
+    def handler(req):
+        return httpx.Response(
+            302,
+            headers={
+                # Unbalanced/corrupt IPv6 literal: raises ValueError on parse.
+                "location": "https://[::1:bad/v1/boards/forksboard/jobs?content=true"
+            },
+        )
+
+    result = asyncio.run(_run(handler))
+    assert isinstance(result, FetchResult)
+    assert result.http_status == 302
+    assert result.complete is False
+    assert result.postings == []
+
+
 def test_credential_bearing_redirect_rejected() -> None:
     def handler(req):
         return httpx.Response(
@@ -741,9 +839,11 @@ def test_validators_never_sent_to_cross_origin_redirect_target() -> None:
     assert "attacker.invalid" not in repr(seen_headers)
 
 
-def test_validators_not_forwarded_on_same_origin_hop() -> None:
-    """Validators carry only on the initial request; redirect-hop requests use
-    only the bare UA + Accept headers."""
+def test_validators_preserved_on_same_origin_redirect_hop() -> None:
+    """Validators carry on every followed hop because redirects are restricted
+    to the exact Greenhouse API origin in :func:`_resolve_redirect`. The same
+    headers built for the initial request (UA, Accept, and any non-null
+    conditional validators) are sent on every request the adapter issues."""
 
     seen = []
 
@@ -771,6 +871,34 @@ def test_validators_not_forwarded_on_same_origin_hop() -> None:
     assert len(seen) == 2
     assert seen[0]["if-none-match"] == '"secret-etag"'
     assert seen[0]["if-modified-since"] == "Wed, 01 Jan 1990 00:00:00 GMT"
+    # The same non-null conditional validators are sent on the followed hop.
+    assert seen[1]["if-none-match"] == '"secret-etag"'
+    assert seen[1]["if-modified-since"] == "Wed, 01 Jan 1990 00:00:00 GMT"
+
+
+def test_no_validators_on_same_origin_hop_when_caller_sent_none() -> None:
+    """When the caller supplied no validators, no hop request carries any
+    conditional header — the same None/absence semantics propagate."""
+
+    seen = []
+
+    def handler(req):
+        seen.append(dict(req.headers))
+        if len(seen) == 1:
+            return httpx.Response(
+                302,
+                headers={
+                    "location": "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true"
+                },
+            )
+        return httpx.Response(
+            200, content=b'{"jobs":[]}', headers={"content-type": "application/json"}
+        )
+
+    asyncio.run(_run(handler, conditional=ConditionalHeaders()))
+    assert len(seen) == 2
+    assert "if-none-match" not in seen[0]
+    assert "if-modified-since" not in seen[0]
     assert "if-none-match" not in seen[1]
     assert "if-modified-since" not in seen[1]
 
@@ -953,6 +1081,104 @@ def test_200_meta_absent_is_valid() -> None:
     result = asyncio.run(_run(handler))
     assert result.http_status == 200
     assert result.complete is True
+
+
+def test_200_empty_meta_object_is_valid() -> None:
+    """A present but empty ``meta={}`` does not make an otherwise valid
+    response incomplete. The ``meta.total`` rule only applies when the
+    ``total`` key is present."""
+
+    body = b'{"jobs":[],"meta":{}}'
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert result.postings == []
+
+
+def test_200_empty_meta_object_with_valid_jobs_is_complete() -> None:
+    """A present ``meta={}`` plus a valid non-empty ``jobs`` list is complete;
+    the ``meta.total`` is only inspected when the ``total`` key is present."""
+
+    body = json.dumps(
+        {
+            "jobs": [
+                {
+                    "id": 1100,
+                    "title": "Engineer",
+                    "content": "<p>SYNTHETIC_EMPTY_META_SENTINEL</p>",
+                    "absolute_url": "https://boards.greenhouse.io/x/jobs/1100",
+                }
+            ],
+            "meta": {},
+        }
+    ).encode("utf-8")
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert len(result.postings) == 1
+
+
+def test_200_meta_with_unrelated_keys_but_no_total_is_valid() -> None:
+    """``meta`` may carry unrelated keys; only a present ``total`` is checked."""
+
+    body = json.dumps({"jobs": [], "meta": {"other_key": "value", "vendor_meta": 0}}).encode(
+        "utf-8"
+    )
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+    assert result.postings == []
+
+
+def test_200_meta_total_present_still_validated_when_zero_matches_jobs() -> None:
+    """A present ``meta.total=0`` with an empty ``jobs`` list is valid; the
+    ``total`` rule still applies when ``total`` is the only key."""
+
+    body = b'{"jobs":[],"meta":{"total":0}}'
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is True
+
+
+def test_200_meta_total_present_with_wrong_type_still_incomplete() -> None:
+    """A present ``meta.total`` of the wrong type is still an incomplete
+    response — the ``total``-rule fix only relaxes the absent-key case."""
+
+    body = b'{"jobs":[],"meta":{"total":"0"}}'
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is False
+
+
+def test_200_meta_total_present_mismatch_still_incomplete() -> None:
+    body = b'{"jobs":[],"meta":{"total":1}}'
+
+    def handler(req):
+        return httpx.Response(200, content=body, headers={"content-type": "application/json"})
+
+    result = asyncio.run(_run(handler))
+    assert result.http_status == 200
+    assert result.complete is False
 
 
 # --------------------------------------------------------------------
@@ -1898,15 +2124,53 @@ def test_token_patterns_returns_stable_list_with_token_group() -> None:
 @pytest.mark.parametrize(
     "url,token",
     [
+        # boards.greenhouse.io shapes: optional trailing slash, /jobs[/{id}],
+        # query string, and fragment forms per Task 004 section 7.
         ("https://boards.greenhouse.io/forksboard", "forksboard"),
         ("https://boards.greenhouse.io/forksboard/", "forksboard"),
         ("https://boards.greenhouse.io/forksboard/jobs", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/", "forksboard"),
         ("https://boards.greenhouse.io/forksboard/jobs/123", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/123/", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard?ref=abc", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/?ref=abc", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/123?ref=abc", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard#frag", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/#frag", "forksboard"),
+        ("https://boards.greenhouse.io/forksboard/jobs/123?ref=abc#top", "forksboard"),
+        # job-boards.greenhouse.io shapes: same optional suffix grammar.
         ("https://job-boards.greenhouse.io/forksboard", "forksboard"),
+        ("https://job-boards.greenhouse.io/forksboard/jobs/123?t=z#f", "forksboard"),
         ("https://job-boards.greenhouse.io/abc-def_g", "abc-def_g"),
+        # embed shape: ``for={token}`` is required, plus optional trailing
+        # slash before the query, extra query params after ``for=``, and an
+        # optional fragment.
         ("https://boards.greenhouse.io/embed/job_board?for=forksboard", "forksboard"),
-        ("https://boards.greenhouse.io/embed/job_board", None),
+        ("https://boards.greenhouse.io/embed/job_board/?for=forksboard", "forksboard"),
+        (
+            "https://boards.greenhouse.io/embed/job_board?for=forksboard&other=x",
+            "forksboard",
+        ),
+        ("https://boards.greenhouse.io/embed/job_board?for=forksboard#top", "forksboard"),
+        (
+            "https://boards.greenhouse.io/embed/job_board?for=forksboard&x=1#top",
+            "forksboard",
+        ),
+        # api shape: optional trailing slash, query, and fragment after
+        # ``/jobs``.
         ("https://boards-api.greenhouse.io/v1/boards/forksboard/jobs", "forksboard"),
+        (
+            "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs/",
+            "forksboard",
+        ),
+        (
+            "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true",
+            "forksboard",
+        ),
+        (
+            "https://boards-api.greenhouse.io/v1/boards/forksboard/jobs?content=true#top",
+            "forksboard",
+        ),
     ],
 )
 def test_token_patterns_positive_cases(url, token) -> None:
@@ -1934,6 +2198,19 @@ def test_token_patterns_positive_cases(url, token) -> None:
         "https://example.invalid/forksboard",
         "https://boards.greenhouse.io/embed/job_board?other=forksboard",
         "https://boards-api.greenhouse.io/v1/boards/",  # missing token
+        # Embed form with the ``for`` query parameter missing must never match:
+        # the adapter grammar requires a non-empty ``for={token}``.
+        "https://boards.greenhouse.io/embed/job_board",
+        "https://boards.greenhouse.io/embed/job_board/",
+        "https://boards.greenhouse.io/embed/job_board#top",
+        # ``for`` parameter present but empty still fails the adapter grammar
+        # (the token must start ``[A-Za-z0-9]``).
+        "https://boards.greenhouse.io/embed/job_board?for=",
+        # ``for`` is not the first parameter — the documented shape is
+        # ``?for={token}`` so a leading ``other=`` does not satisfy it.
+        "https://boards.greenhouse.io/embed/job_board?other=x&for=forksboard",
+        # A space in a fragment terminates the bounded fragment class.
+        "https://boards.greenhouse.io/forksboard#frag space",
     ],
 )
 def test_token_patterns_negative_cases(url) -> None:
