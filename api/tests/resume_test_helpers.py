@@ -22,6 +22,31 @@ from app.resume.normalize import normalize_markdown
 SETTINGS_URL = "https://example.invalid/portfolio.pdf"
 
 
+# A sentinel credential that must never appear in a result object, log line, or
+# stdout payload. Used only in the non-PostgreSQL database-failure tests to
+# verify redaction of database URLs and credentials in error paths. The URL is
+# never opened — it is only carried in a ``ResumeSettings`` value and mocked
+# away before any socket connection is attempted.
+_SENTINEL_PASSWORD = "dbfailpassword"
+_SENTINEL_DATABASE_URL = f"postgresql+psycopg://leakuser:{_SENTINEL_PASSWORD}@127.0.0.1:5432/jobs"
+
+
+def sentinel_database_url() -> str:
+    """Return a credential-bearing database URL that non-PostgreSQL tests pass
+    into ``ResumeSettings`` without ever opening a socket. Every database
+    boundary in the test is mocked so the URL is never used for a real
+    connection; the sentinel password verifies that redaction holds."""
+
+    return _SENTINEL_DATABASE_URL
+
+
+def assert_no_credentials(text: str) -> None:
+    """Assert that no sentinel credential or database URL appears in text."""
+
+    for token in (_SENTINEL_PASSWORD, _SENTINEL_DATABASE_URL, "leakpassword"):
+        assert token not in text, f"unsafe credential token leaked: {token!r}"
+
+
 def skip_without_test_db() -> str:
     import os
 

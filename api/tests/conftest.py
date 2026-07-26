@@ -6,11 +6,21 @@ pgvector integration tests and supplies a ``postgres_url`` fixture that reads
 non-loopback or production-shaped database: PostgreSQL-specific behavior must
 be verified against a disposable database, not SQLite, and never implicitly
 against a development or production database.
+
+Network isolation: tests that do not carry the ``postgres`` marker run under a
+real socket-connect guard that patches :func:`socket.socket` so any attempt to
+open a network connection fails the test immediately with a clear message. A
+refused connection to ``127.0.0.1`` is still a live network request — the
+non-PostgreSQL suite must be genuinely network-isolated, mocking the database
+boundary instead of pointing it at a closed port. PostgreSQL-marked tests
+bypass the guard and connect only through the validated loopback
+``TEST_DATABASE_URL``.
 """
 
 from __future__ import annotations
 
 import os
+import socket
 from urllib.parse import urlparse
 
 import pytest
@@ -48,19 +58,49 @@ def postgres_url() -> str:
     return url
 
 
+class _NetworkBlockedError(RuntimeError):
+    """Raised by the socket guard when a non-postgres test attempts to
+    connect to a network endpoint."""
+
+    def __init__(self, address: tuple[str, int]) -> None:
+        super().__init__(
+            f"non-postgres test attempted a live network socket connection "
+            f"to {address[0]}:{address[1]}; database failures must be mocked "
+            f"without opening a socket"
+        )
+        self.address = address
+
+
 @pytest.fixture(autouse=True)
-def _no_live_network_for_non_postgres(monkeypatch, request):
-    """Best-effort guard: tests that do not opt-in to PostgreSQL must not make
-    a live network request. We do not patch ``socket`` here (PostgreSQL tests
-    legitimately reach a loopback container); instead we assert at collection
-    time that every non-postgres fetch test injects a mock transport via the
-    ``transport``/``client`` parameter. This autouse fixture documents that the
-    HTTP boundary is the only outbound network path and that resume-sync tests
-    never construct a real ``httpx.Client`` against the configured host.
+def _guard_network_for_non_postgres(monkeypatch, request):
+    """Block every socket connect attempt for tests without the ``postgres``
+    marker. A refused connection to ``127.0.0.1`` is still a live network
+    request; this guard makes the isolation real rather than aspirational.
+    PostgreSQL-marked tests bypass the guard so they can connect to the
+    disposable loopback ``TEST_DATABASE_URL`` container.
     """
 
-    # No-op guard for documentation. Real isolation comes from tests always
-    # passing ``transport=httpx.MockTransport(...)`` to ``fetch_resume``.
+    if request.node.get_closest_marker("postgres") is not None:
+        return None
+
+    original_socket = socket.socket
+
+    class _BlockedSocket(original_socket):  # type: ignore[misc, valid-type]
+        def connect(self, address):  # type: ignore[no-untyped-def]
+            err = _NetworkBlockedError(address)
+            # Attach the AssertionError to be raised immediately so the test
+            # owner sees the blocked connect in the traceback alongside the
+            # fixture message.
+            raise AssertionError(str(err)) from err
+
+        def connect_ex(self, address):  # type: ignore[no-untyped-def]
+            err = _NetworkBlockedError(address)
+            raise AssertionError(str(err)) from err
+
+    def _socket_factory(*args, **kwargs):  # type: ignore[no-untyped-def]
+        return _BlockedSocket(*args, **kwargs)
+
+    monkeypatch.setattr(socket, "socket", _socket_factory)
     return None
 
 

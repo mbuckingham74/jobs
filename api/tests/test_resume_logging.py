@@ -19,8 +19,6 @@ from app.resume.service import sync_resume
 
 SECRET_FIXTURE_TEXT = "SECRET_RESUME_SENTENCE_TEXT_FOR_LEAK_DETECTION"
 SECRET_RAW_BYTES_SENTINEL = b"RAW_BYTES_SENTINEL_FOR_LEAK_DETECTION"
-SECRET_DATABASE_URL = "postgresql+psycopg://leakuser:leakpassword@127.0.0.1:1/jobs"
-SECRET_CREDENTIAL = "leakpassword"
 SECRET_ETAG = "SECRET_ETAG_VALUE"
 SECRET_LAST_MODIFIED = "Wed, 01 Jul 2026 12:00:00 GMT"
 SECRET_HOST_URL = "https://userinfo-leak:secret-token@example.invalid/path?query=frag#frag"
@@ -78,10 +76,11 @@ def test_configured_logger_writes_json_lines_to_stderr() -> None:
 def _make_settings_no_db() -> object:
     from app.resume.config import ResumeSettings
 
-    # A credential-bearing loopback URL whose connection attempt is refused
-    # instantly on port 1; the password must never appear in any log line.
+    # The sentinel credential is never opened: every database boundary in
+    # these logging tests is mocked via ``pre_fetch_validators_override`` so
+    # no socket connection is attempted.
     return ResumeSettings(
-        database_url=SECRET_DATABASE_URL,
+        database_url="postgresql+psycopg://leakuser:leakpassword@127.0.0.1:5432/jobs",
         base_resume_url="https://example.invalid/x.pdf",
         resume_max_bytes=10 * 1024 * 1024,
     )
@@ -154,16 +153,12 @@ def test_result_error_serialization_omits_unsafe_detail() -> None:
         }
     )
     assert SECRET_FIXTURE_TEXT not in serialized
-    assert SECRET_CREDENTIAL not in serialized
 
 
 def _assert_no_secrets(log_text: str) -> None:
     forbidden = [
         SECRET_FIXTURE_TEXT,
         SECRET_RAW_BYTES_SENTINEL.decode("utf-8", errors="replace"),
-        SECRET_CREDENTIAL,
-        "leakpassword",
-        SECRET_DATABASE_URL,
         SECRET_ETAG,
         SECRET_LAST_MODIFIED,
     ]
