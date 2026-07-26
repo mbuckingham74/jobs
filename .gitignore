@@ -68,6 +68,10 @@ coverage.xml
 *.psql
 dumps/
 
+# The *.sql dump bundle stays ignored; only this tracked PostgreSQL
+# enforcement fixture under api/tests is un-ignored.
+!api/tests/core_schema_enforcement.sql
+
 # ---- local data ----
 data/
 local_data/
