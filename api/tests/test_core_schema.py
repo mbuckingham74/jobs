@@ -1,12 +1,17 @@
 """Migration-focused tests for the Phase 1 core schema revision.
 
 These tests make regressions in the revision identifiers and the required
-upgrade/downgrade definitions visible without touching a database. They load
-the single domain revision module directly from ``api/migrations/versions``
-so the test does not depend on the Alembic runtime or on a live database.
-Catalog-level enforcement of the constraints is verified separately against a
-disposable PostgreSQL 16 + pgvector instance by
+upgrade/downgrade definitions visible without touching a database. They locate
+the ``0001_core_schema`` revision explicitly by its revision identifier (or its
+expected migration filename) rather than assuming one Python revision file
+exists, so the second Phase 1 revision (``0002_resume_source_state``) can live
+beside it. Catalog-level enforcement of the constraints is verified separately
+against a disposable PostgreSQL 16 + pgvector instance by
 ``api/tests/core_schema_enforcement.sql`` (see the task validation commands).
+
+The companion test module ``test_resume_source_state.py`` asserts the second
+revision's identifiers, the linear single-head chain, and that this module's
+``0001_core_schema`` assertions still pass unchanged.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ import pytest
 
 REVISION_ID = "0001_core_schema"
 REVISION_SLUG = "core_schema"
+EXPECTED_FILENAME = "20260725_2200_0001_core_schema.py"
 
 PHASE_1_TABLES = [
     "company",
@@ -37,37 +43,48 @@ PHASE_1_TABLES = [
     "digest_item",
 ]
 
+
 # The migration environment is not a Python package; ``migrations`` has no
-# ``__init__.py``. Resolve the single domain revision by path and load it as an
-# isolated module so the test does not require Alembic or a database session.
+# ``__init__.py``. Resolve a revision by its declared revision identifier rather
+# than assuming exactly one file under migrations/versions exists.
 _API_DIR = Path(__file__).resolve().parent.parent
 _VERSIONS_DIR = _API_DIR / "migrations" / "versions"
 
 
-def _load_revision_module() -> tuple[object, Path]:
-    py_files = sorted(p for p in _VERSIONS_DIR.glob("*.py") if p.name != "__init__.py")
-    assert len(py_files) == 1, (
-        "expected exactly one domain revision under migrations/versions, found "
-        f"{[p.name for p in py_files]}"
-    )
-    path = py_files[0]
-    spec = importlib.util.spec_from_file_location("jobs_core_schema_revision", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module, path
+def _load_revision_module_by_id(revision_id: str) -> object:
+    for path in sorted(_VERSIONS_DIR.glob("*.py")):
+        if path.name == "__init__.py":
+            continue
+        spec = importlib.util.spec_from_file_location(f"jobs_revision_{revision_id}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if getattr(module, "revision", None) == revision_id:
+            return module
+    raise AssertionError(f"no migration module with revision {revision_id!r} found")
+
+
+def _load_revision_path_by_id(revision_id: str) -> Path:
+    for path in sorted(_VERSIONS_DIR.glob("*.py")):
+        if path.name == "__init__.py":
+            continue
+        spec = importlib.util.spec_from_file_location(f"jobs_revision_path_{revision_id}", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if getattr(module, "revision", None) == revision_id:
+            return path
+    raise AssertionError(f"no migration module with revision {revision_id!r} found")
 
 
 @pytest.fixture(scope="module")
 def revision_module() -> object:
-    module, _ = _load_revision_module()
-    return module
+    return _load_revision_module_by_id(REVISION_ID)
 
 
 @pytest.fixture(scope="module")
 def revision_path() -> Path:
-    _, path = _load_revision_module()
-    return path
+    return _load_revision_path_by_id(REVISION_ID)
 
 
 @pytest.fixture(scope="module")
@@ -81,12 +98,6 @@ def _created_tables(source: str) -> list[str]:
 
 def _dropped_tables(source: str) -> list[str]:
     return re.findall(r'op\.drop_table\(\s*"([a-z_]+)"', source)
-
-
-def test_exactly_one_revision_file_exists(revision_path: Path) -> None:
-    # _load_revision_module already asserts uniqueness, so reaching here is the
-    # pass condition. Verify the file is not a placeholder.
-    assert revision_path.suffix == ".py"
 
 
 def test_revision_identifier_is_stable(revision_module: object) -> None:
@@ -110,6 +121,12 @@ def test_file_name_follows_template(revision_path: Path) -> None:
     assert len(hour_minute) == 4 and hour_minute.isdigit(), stem  # HHMM
     assert tail.endswith(REVISION_ID) or tail.endswith(REVISION_SLUG), stem
     assert REVISION_ID in tail and REVISION_SLUG in tail, stem
+
+
+def test_filename_is_stable(revision_path: Path) -> None:
+    # Locate by revision id, but also assert the historical filename has not
+    # drifted; renaming this file would break automated upgrade scripts.
+    assert revision_path.name == EXPECTED_FILENAME, revision_path.name
 
 
 def test_upgrade_and_downgrade_are_defined(revision_module: object) -> None:
