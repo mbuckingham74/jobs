@@ -48,25 +48,32 @@ server defaults, and relationships shown in specification section 04:
 
 1. `company`
 2. `source_endpoint`
-3. `discovery_event`
-4. `pipeline_run`
-5. `source_fetch`
-6. `posting`
-7. `posting_version`
-8. `resume_version`
-9. `candidate_profile_version`
-10. `company_research`
-11. `score`
-12. `daily_digest`
-13. `digest_item`
+3. `pipeline_run`
+4. `source_fetch`
+5. `posting`
+6. `posting_version`
+7. `resume_version`
+8. `candidate_profile_version`
+9. `company_research`
+10. `score`
+11. `daily_digest`
+12. `digest_item`
 
 Use PostgreSQL-native `JSONB`, timezone-aware timestamps, dates, numeric
 precision, booleans, and bigint primary keys as specified. The
 `posting_version.embedding` column must be `vector(1024)`, matching
 `voyage-4` with `output_dimension=1024`.
 
+Keep the `company_research` table in this structural migration because
+`score.company_research_id` is a required foreign-key input for deep scores.
+Research fetching, web search, enrichment, refresh, caching, budget, and
+population behavior remain out of scope.
+
+`discovery_event` is a Phase 4 table and must not be introduced by this
+revision.
+
 `application` and `application_event` are not Phase 1 tables. The specification
-places manual application entry and outcome tracking in Phase 2, so those
+places manual application entry and outcome tracking in Phase 3, so those
 tables must not be introduced by this revision.
 
 ### 3. Enumerated checks and decision-input constraints
@@ -111,6 +118,12 @@ Preserve the two named deep-score constraints from the specification:
   `location_eligibility`, whose JSON `status` is `eligible`, `ineligible`, or
   `unclear`
 
+The `deep_score_location_status` expression must fail closed when the JSON
+`status` key is missing or JSON null. PostgreSQL accepts a check constraint
+whose expression evaluates to SQL `NULL`, so the allowed-value test must be
+wrapped with `coalesce(..., false)` or use an equivalent expression that
+returns `false`, never `NULL`, for a missing status.
+
 Filter and triage score rows must remain able to omit those version inputs.
 Do not add stricter score-range, JSON-shape, lifecycle, or cross-table
 constraints that are not present in the specification.
@@ -140,7 +153,7 @@ Add both specified partial unique indexes:
 Use the exact deletion semantics from section 04:
 
 - cascade only where the specification says `ON DELETE CASCADE`
-- use `SET NULL` for discovery endpoints and duplicate-posting links
+- use `SET NULL` for duplicate-posting links
 - use `RESTRICT` for durable historical inputs and queue references
 
 Do not replace these relationships with implicit ORM cascades or rely on
@@ -165,7 +178,7 @@ Do not add speculative indexes for later query patterns.
 
 ### 6. Reversible downgrade
 
-`downgrade()` must remove the 13 Phase 1 tables in reverse dependency order,
+`downgrade()` must remove the 12 Phase 1 tables in reverse dependency order,
 then remove the `vector` extension after the vector column and HNSW index no
 longer exist. It must leave no application table, application-defined index,
 application-defined constraint, or `vector` extension behind. Alembic's own
@@ -185,8 +198,28 @@ schema after the second upgrade must match the schema after the first.
 Add focused pytest coverage for any migration helpers or custom type handling
 introduced by this task. At minimum, tests must make regressions in the
 revision identifiers and the required upgrade/downgrade definitions visible.
-The real PostgreSQL upgrade/downgrade cycle and catalog assertions below remain
-required even if unit tests inspect the revision.
+
+Add a deterministic PostgreSQL enforcement test at
+`api/tests/core_schema_enforcement.sql`. It must run against the upgraded
+disposable database used below, build otherwise-valid prerequisite rows, and
+attempt each prohibited write independently. It must fail unless PostgreSQL
+rejects the write with the expected constraint and SQLSTATE: `23514` for check
+violations and `23505` for partial-unique-index violations. Cover:
+
+- an invalid value for every enumerated domain listed in section 3
+- digest ranks below 1 and above 3
+- separate deep scores omitting each of `resume_version_id`,
+  `candidate_profile_version_id`, and `company_research_id`
+- deep scores with SQL-null `location_eligibility`, a missing JSON `status`
+  key, a JSON-null `status`, and a status outside the allowed values
+- a second active `resume_version` for the same variant
+- a second active `candidate_profile_version`
+
+Use transaction-local fixtures and finish with `ROLLBACK` so the catalog and
+repeat-upgrade comparison are not affected. A test must not pass because some
+unrelated foreign key, not-null constraint, or earlier statement rejected the
+row. Catalog inspection remains required, but it is not evidence that these
+constraints enforce writes.
 
 Do not use SQLite as evidence that PostgreSQL JSONB, partial indexes, HNSW,
 foreign-key actions, or pgvector behavior is correct.
@@ -203,6 +236,9 @@ foreign-key actions, or pgvector behavior is correct.
 - Deterministic filters, research calls, embeddings, model calls, scoring,
   ranking, or digest freezing behavior
 - `application` and `application_event`
+- `discovery_event` and discovery-event persistence
+- Company-research fetching, web search, enrichment, refresh, caching, budget,
+  or population behavior
 - API or CLI routes, request/response schemas, HTML, or dashboard work
 - Schedulers, notifications, authentication, CSRF, deployment, backup, or VPS
   changes
@@ -215,7 +251,7 @@ reversible database schema.
 - [ ] Exactly one domain revision exists, is Alembic's head, and has
       `down_revision = None`.
 - [ ] Upgrading a clean PostgreSQL 16 + pgvector database creates the `vector`
-      extension and exactly the 13 Phase 1 tables listed above, in addition to
+      extension and exactly the 12 Phase 1 tables listed above, in addition to
       Alembic's own version table.
 - [ ] `posting_version.embedding` is `vector(1024)` and
       `posting_version_embed_idx` is an HNSW cosine-operator index.
@@ -230,14 +266,20 @@ reversible database schema.
 - [ ] A filter or triage score may omit résumé, candidate-profile, and research
       references; a deep score may not omit them or provide a missing/invalid
       location-eligibility status.
-- [ ] Digest ranks outside 1 through 3 and values outside every enumerated
-      domain are rejected by PostgreSQL.
-- [ ] `alembic downgrade base` removes all 13 Phase 1 tables and the `vector`
+- [ ] The deterministic PostgreSQL enforcement test confirms that every
+      prohibited write listed in section 7 is rejected by the intended
+      constraint and SQLSTATE.
+- [ ] Digest ranks outside 1 through 3, values outside every enumerated domain,
+      and deep scores whose location JSON omits `status` are rejected by
+      PostgreSQL rather than passing through a SQL-null check result.
+- [ ] Both partial active-version unique indexes reject conflicting active
+      rows.
+- [ ] `alembic downgrade base` removes all 12 Phase 1 tables and the `vector`
       extension without dependency errors.
 - [ ] A second `alembic upgrade head` succeeds after downgrade and recreates
       the same schema.
-- [ ] `application`, `application_event`, and all other out-of-scope behavior
-      are absent.
+- [ ] `discovery_event`, `application`, `application_event`, and all other
+      out-of-scope behavior are absent.
 - [ ] Ruff lint and format checks pass for all Python files under `api/`.
 - [ ] The full pytest suite passes.
 - [ ] No secret, `.env` file, generated cache, local virtual environment,
@@ -306,7 +348,7 @@ SQL
 ```
 
 The extension query must return one `vector` row. The table query must return
-`alembic_version` plus exactly:
+`alembic_version` plus exactly these 12 application tables:
 
 ```text
 candidate_profile_version
@@ -314,7 +356,6 @@ company
 company_research
 daily_digest
 digest_item
-discovery_event
 pipeline_run
 posting
 posting_version
@@ -387,6 +428,24 @@ SQL
 The output must include the two partial unique indexes and all five query
 indexes named in this task. Review the catalog output against section 04; do
 not accept migration success alone as schema validation.
+
+### PostgreSQL enforcement tests
+
+Run the deterministic write-enforcement test against the upgraded disposable
+database:
+
+```bash
+docker compose -p "$SCHEMA_PROJECT" exec -T db \
+  psql -X -v ON_ERROR_STOP=1 -U jobs -d jobs \
+  < api/tests/core_schema_enforcement.sql
+```
+
+The command must exit zero only after observing every expected rejection
+listed in section 7. Any prohibited write that succeeds, any rejection with a
+different constraint or SQLSTATE, or any fixture/setup error must make the
+command exit nonzero. The script must finish with `ROLLBACK`; rerun the catalog
+queries afterward and confirm that its fixtures left no rows or schema objects
+behind.
 
 ### Downgrade and repeat-upgrade checks
 
