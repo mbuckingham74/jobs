@@ -16,9 +16,10 @@ from __future__ import annotations
 import json
 import logging
 import re
+import unicodedata
 from collections import Counter
 from typing import Any, Final
-from urllib.parse import parse_qsl, urljoin, urlparse, urlunsplit
+from urllib.parse import parse_qsl, unquote_to_bytes, urljoin, urlparse, urlunsplit
 
 import httpx
 from markdownify import markdownify
@@ -53,6 +54,7 @@ _HOSTED_ORIGINS: Final[dict[str, str]] = {
 }
 _TOKEN_RE: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
 _COUNTRY_RE: Final[re.Pattern[str]] = re.compile(r"[A-Z]{2}", re.ASCII)
+_HEX_DIGITS: Final[frozenset[str]] = frozenset("0123456789abcdefABCDEF")
 
 _CONNECT_TIMEOUT: Final[float] = 5.0
 _READ_TIMEOUT: Final[float] = 30.0
@@ -672,6 +674,8 @@ def _hosted_url(
 ) -> str | None:
     if not isinstance(value, str):
         return None
+    if any(character.isspace() or unicodedata.category(character) == "Cc" for character in value):
+        return None
     try:
         parsed = urlparse(value)
         port = parsed.port
@@ -684,9 +688,34 @@ def _hosted_url(
     if parsed.username or parsed.password:
         return None
     parts = parsed.path.split("/")
-    if len(parts) < 3 or parts[0] != "" or parts[1] != token or parts[2] != external_id:
+    if len(parts) < 3 or parts[0] != "" or parts[1] != token:
+        return None
+    decoded_id = _strict_path_segment(parts[2])
+    if decoded_id is None or decoded_id != external_id:
         return None
     return value
+
+
+def _strict_path_segment(segment: str) -> str | None:
+    """Decode one posting-ID segment once, rejecting ambiguous path content."""
+
+    for index, character in enumerate(segment):
+        if character == "%" and (
+            index + 2 >= len(segment)
+            or segment[index + 1] not in _HEX_DIGITS
+            or segment[index + 2] not in _HEX_DIGITS
+        ):
+            return None
+    try:
+        decoded = unquote_to_bytes(segment).decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    if any(
+        character in {"/", "\\"} or character == "\x00" or unicodedata.category(character) == "Cc"
+        for character in decoded
+    ):
+        return None
+    return decoded
 
 
 def _normalize_locations(row: dict[str, Any]) -> list[RawLocation]:

@@ -788,9 +788,75 @@ def test_hosted_and_apply_urls_are_region_and_identity_bound(url: str) -> None:
         assert result.complete is False
 
 
+@pytest.mark.parametrize("field", ["hostedUrl", "applyUrl"])
+@pytest.mark.parametrize(
+    "unsafe_value",
+    [
+        " https://jobs.lever.co/synthetic-global-board/synthetic-001",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?ok=1#fragment ",
+        "https://jobs.lever.co/synthetic-global-board/synthetic 001",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\t",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\r",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\n",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\x00",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\x1f",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\x7f",
+        "https://jobs.lever.co/synthetic-global-board/synthetic-001?raw=\u0085",
+    ],
+)
+def test_hosted_and_apply_urls_reject_raw_whitespace_and_controls(
+    field: str,
+    unsafe_value: str,
+) -> None:
+    row = _row()
+    row[field] = unsafe_value
+    result = asyncio.run(_run(lambda request: httpx.Response(200, content=_body([row]))))
+    assert result.postings == []
+    assert result.complete is False
+
+
+def test_literal_spaces_in_both_posting_url_paths_are_rejected() -> None:
+    row = _row("synthetic 001")
+    row["hostedUrl"] = f"https://jobs.lever.co/{GLOBAL_TOKEN}/synthetic 001"
+    row["applyUrl"] = f"https://jobs.lever.co/{GLOBAL_TOKEN}/synthetic 001/apply"
+    result = asyncio.run(_run(lambda request: httpx.Response(200, content=_body([row]))))
+    assert result.postings == []
+    assert result.complete is False
+
+
+@pytest.mark.parametrize("field", ["hostedUrl", "applyUrl"])
+@pytest.mark.parametrize(
+    "segment",
+    [
+        "synthetic-001%",
+        "synthetic-001%2",
+        "synthetic-001%GG",
+        "synthetic-001%FF",
+        "synthetic-001%2Fextra",
+        "synthetic-001%5Cextra",
+        "synthetic-001%00",
+        "synthetic-001%1F",
+    ],
+)
+def test_hosted_and_apply_urls_reject_invalid_encoded_id_segments(
+    field: str,
+    segment: str,
+) -> None:
+    suffix = "/apply" if field == "applyUrl" else ""
+    row = _row()
+    row[field] = f"https://jobs.lever.co/{GLOBAL_TOKEN}/{segment}{suffix}"
+    result = asyncio.run(_run(lambda request: httpx.Response(200, content=_body([row]))))
+    assert result.postings == []
+    assert result.complete is False
+
+
 def test_ids_titles_locations_and_optional_metadata_normalize_without_inference() -> None:
+    external_id = "Case ID–東京"
+    encoded_id = "Case%20ID%E2%80%93%E6%9D%B1%E4%BA%AC"
+    posting_url = f"https://jobs.lever.co/{GLOBAL_TOKEN}/{encoded_id}?keep=%20exact#posting"
+    apply_url = f"https://jobs.lever.co/{GLOBAL_TOKEN}/{encoded_id}/apply?keep=%20exact#apply"
     row = _row(
-        "  Case ID  ",
+        f"  {external_id}  ",
         text="  Senior   Synthetic Role  ",
         categories={
             "allLocations": ["  Alpha  ", "", "Alpha", "Beta", "Beta"],
@@ -801,12 +867,14 @@ def test_ids_titles_locations_and_optional_metadata_normalize_without_inference(
         country="CA",
         workplaceType="remote",
     )
-    row["hostedUrl"] = "https://jobs.lever.co/synthetic-global-board/Case ID?keep=yes#posting"
-    row["applyUrl"] = "https://jobs.lever.co/synthetic-global-board/Case ID/apply?keep=yes#apply"
+    row["hostedUrl"] = posting_url
+    row["applyUrl"] = apply_url
     result = asyncio.run(_run(lambda request: httpx.Response(200, content=_body([row]))))
     posting = result.postings[0]
-    assert posting.external_id == "Case ID"
+    assert posting.external_id == external_id
     assert posting.title == "Senior   Synthetic Role"
+    assert posting.posting_url == posting_url
+    assert posting.apply_url == apply_url
     assert posting.department == "Product Programs"
     normalized_locations = [
         (location.label, location.country_code, location.workplace_type)
