@@ -1,0 +1,3102 @@
+[
+  {
+    "id": "page-000",
+    "text": "Synthetic Page Role 000",
+    "description": "<p>Synthetic description for page-000.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-000</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-000?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-000/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-000"
+    }
+  },
+  {
+    "id": "page-001",
+    "text": "Synthetic Page Role 001",
+    "description": "<p>Synthetic description for page-001.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-001</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-001?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-001/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-001"
+    }
+  },
+  {
+    "id": "page-002",
+    "text": "Synthetic Page Role 002",
+    "description": "<p>Synthetic description for page-002.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-002</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-002?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-002/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-002"
+    }
+  },
+  {
+    "id": "page-003",
+    "text": "Synthetic Page Role 003",
+    "description": "<p>Synthetic description for page-003.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-003</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-003?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-003/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-003"
+    }
+  },
+  {
+    "id": "page-004",
+    "text": "Synthetic Page Role 004",
+    "description": "<p>Synthetic description for page-004.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-004</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-004?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-004/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-004"
+    }
+  },
+  {
+    "id": "page-005",
+    "text": "Synthetic Page Role 005",
+    "description": "<p>Synthetic description for page-005.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-005</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-005?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-005/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-005"
+    }
+  },
+  {
+    "id": "page-006",
+    "text": "Synthetic Page Role 006",
+    "description": "<p>Synthetic description for page-006.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-006</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-006?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-006/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-006"
+    }
+  },
+  {
+    "id": "page-007",
+    "text": "Synthetic Page Role 007",
+    "description": "<p>Synthetic description for page-007.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-007</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-007?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-007/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-007"
+    }
+  },
+  {
+    "id": "page-008",
+    "text": "Synthetic Page Role 008",
+    "description": "<p>Synthetic description for page-008.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-008</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-008?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-008/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-008"
+    }
+  },
+  {
+    "id": "page-009",
+    "text": "Synthetic Page Role 009",
+    "description": "<p>Synthetic description for page-009.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-009</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-009?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-009/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-009"
+    }
+  },
+  {
+    "id": "page-010",
+    "text": "Synthetic Page Role 010",
+    "description": "<p>Synthetic description for page-010.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-010</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-010?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-010/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-010"
+    }
+  },
+  {
+    "id": "page-011",
+    "text": "Synthetic Page Role 011",
+    "description": "<p>Synthetic description for page-011.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-011</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-011?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-011/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-011"
+    }
+  },
+  {
+    "id": "page-012",
+    "text": "Synthetic Page Role 012",
+    "description": "<p>Synthetic description for page-012.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-012</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-012?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-012/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-012"
+    }
+  },
+  {
+    "id": "page-013",
+    "text": "Synthetic Page Role 013",
+    "description": "<p>Synthetic description for page-013.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-013</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-013?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-013/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-013"
+    }
+  },
+  {
+    "id": "page-014",
+    "text": "Synthetic Page Role 014",
+    "description": "<p>Synthetic description for page-014.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-014</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-014?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-014/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-014"
+    }
+  },
+  {
+    "id": "page-015",
+    "text": "Synthetic Page Role 015",
+    "description": "<p>Synthetic description for page-015.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-015</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-015?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-015/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-015"
+    }
+  },
+  {
+    "id": "page-016",
+    "text": "Synthetic Page Role 016",
+    "description": "<p>Synthetic description for page-016.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-016</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-016?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-016/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-016"
+    }
+  },
+  {
+    "id": "page-017",
+    "text": "Synthetic Page Role 017",
+    "description": "<p>Synthetic description for page-017.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-017</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-017?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-017/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-017"
+    }
+  },
+  {
+    "id": "page-018",
+    "text": "Synthetic Page Role 018",
+    "description": "<p>Synthetic description for page-018.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-018</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-018?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-018/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-018"
+    }
+  },
+  {
+    "id": "page-019",
+    "text": "Synthetic Page Role 019",
+    "description": "<p>Synthetic description for page-019.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-019</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-019?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-019/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-019"
+    }
+  },
+  {
+    "id": "page-020",
+    "text": "Synthetic Page Role 020",
+    "description": "<p>Synthetic description for page-020.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-020</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-020?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-020/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-020"
+    }
+  },
+  {
+    "id": "page-021",
+    "text": "Synthetic Page Role 021",
+    "description": "<p>Synthetic description for page-021.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-021</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-021?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-021/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-021"
+    }
+  },
+  {
+    "id": "page-022",
+    "text": "Synthetic Page Role 022",
+    "description": "<p>Synthetic description for page-022.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-022</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-022?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-022/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-022"
+    }
+  },
+  {
+    "id": "page-023",
+    "text": "Synthetic Page Role 023",
+    "description": "<p>Synthetic description for page-023.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-023</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-023?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-023/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-023"
+    }
+  },
+  {
+    "id": "page-024",
+    "text": "Synthetic Page Role 024",
+    "description": "<p>Synthetic description for page-024.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-024</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-024?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-024/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-024"
+    }
+  },
+  {
+    "id": "page-025",
+    "text": "Synthetic Page Role 025",
+    "description": "<p>Synthetic description for page-025.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-025</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-025?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-025/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-025"
+    }
+  },
+  {
+    "id": "page-026",
+    "text": "Synthetic Page Role 026",
+    "description": "<p>Synthetic description for page-026.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-026</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-026?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-026/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-026"
+    }
+  },
+  {
+    "id": "page-027",
+    "text": "Synthetic Page Role 027",
+    "description": "<p>Synthetic description for page-027.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-027</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-027?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-027/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-027"
+    }
+  },
+  {
+    "id": "page-028",
+    "text": "Synthetic Page Role 028",
+    "description": "<p>Synthetic description for page-028.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-028</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-028?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-028/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-028"
+    }
+  },
+  {
+    "id": "page-029",
+    "text": "Synthetic Page Role 029",
+    "description": "<p>Synthetic description for page-029.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-029</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-029?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-029/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-029"
+    }
+  },
+  {
+    "id": "page-030",
+    "text": "Synthetic Page Role 030",
+    "description": "<p>Synthetic description for page-030.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-030</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-030?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-030/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-030"
+    }
+  },
+  {
+    "id": "page-031",
+    "text": "Synthetic Page Role 031",
+    "description": "<p>Synthetic description for page-031.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-031</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-031?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-031/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-031"
+    }
+  },
+  {
+    "id": "page-032",
+    "text": "Synthetic Page Role 032",
+    "description": "<p>Synthetic description for page-032.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-032</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-032?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-032/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-032"
+    }
+  },
+  {
+    "id": "page-033",
+    "text": "Synthetic Page Role 033",
+    "description": "<p>Synthetic description for page-033.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-033</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-033?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-033/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-033"
+    }
+  },
+  {
+    "id": "page-034",
+    "text": "Synthetic Page Role 034",
+    "description": "<p>Synthetic description for page-034.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-034</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-034?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-034/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-034"
+    }
+  },
+  {
+    "id": "page-035",
+    "text": "Synthetic Page Role 035",
+    "description": "<p>Synthetic description for page-035.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-035</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-035?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-035/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-035"
+    }
+  },
+  {
+    "id": "page-036",
+    "text": "Synthetic Page Role 036",
+    "description": "<p>Synthetic description for page-036.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-036</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-036?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-036/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-036"
+    }
+  },
+  {
+    "id": "page-037",
+    "text": "Synthetic Page Role 037",
+    "description": "<p>Synthetic description for page-037.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-037</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-037?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-037/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-037"
+    }
+  },
+  {
+    "id": "page-038",
+    "text": "Synthetic Page Role 038",
+    "description": "<p>Synthetic description for page-038.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-038</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-038?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-038/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-038"
+    }
+  },
+  {
+    "id": "page-039",
+    "text": "Synthetic Page Role 039",
+    "description": "<p>Synthetic description for page-039.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-039</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-039?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-039/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-039"
+    }
+  },
+  {
+    "id": "page-040",
+    "text": "Synthetic Page Role 040",
+    "description": "<p>Synthetic description for page-040.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-040</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-040?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-040/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-040"
+    }
+  },
+  {
+    "id": "page-041",
+    "text": "Synthetic Page Role 041",
+    "description": "<p>Synthetic description for page-041.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-041</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-041?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-041/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-041"
+    }
+  },
+  {
+    "id": "page-042",
+    "text": "Synthetic Page Role 042",
+    "description": "<p>Synthetic description for page-042.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-042</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-042?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-042/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-042"
+    }
+  },
+  {
+    "id": "page-043",
+    "text": "Synthetic Page Role 043",
+    "description": "<p>Synthetic description for page-043.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-043</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-043?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-043/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-043"
+    }
+  },
+  {
+    "id": "page-044",
+    "text": "Synthetic Page Role 044",
+    "description": "<p>Synthetic description for page-044.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-044</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-044?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-044/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-044"
+    }
+  },
+  {
+    "id": "page-045",
+    "text": "Synthetic Page Role 045",
+    "description": "<p>Synthetic description for page-045.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-045</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-045?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-045/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-045"
+    }
+  },
+  {
+    "id": "page-046",
+    "text": "Synthetic Page Role 046",
+    "description": "<p>Synthetic description for page-046.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-046</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-046?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-046/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-046"
+    }
+  },
+  {
+    "id": "page-047",
+    "text": "Synthetic Page Role 047",
+    "description": "<p>Synthetic description for page-047.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-047</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-047?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-047/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-047"
+    }
+  },
+  {
+    "id": "page-048",
+    "text": "Synthetic Page Role 048",
+    "description": "<p>Synthetic description for page-048.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-048</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-048?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-048/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-048"
+    }
+  },
+  {
+    "id": "page-049",
+    "text": "Synthetic Page Role 049",
+    "description": "<p>Synthetic description for page-049.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-049</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-049?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-049/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-049"
+    }
+  },
+  {
+    "id": "page-050",
+    "text": "Synthetic Page Role 050",
+    "description": "<p>Synthetic description for page-050.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-050</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-050?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-050/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-050"
+    }
+  },
+  {
+    "id": "page-051",
+    "text": "Synthetic Page Role 051",
+    "description": "<p>Synthetic description for page-051.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-051</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-051?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-051/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-051"
+    }
+  },
+  {
+    "id": "page-052",
+    "text": "Synthetic Page Role 052",
+    "description": "<p>Synthetic description for page-052.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-052</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-052?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-052/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-052"
+    }
+  },
+  {
+    "id": "page-053",
+    "text": "Synthetic Page Role 053",
+    "description": "<p>Synthetic description for page-053.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-053</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-053?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-053/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-053"
+    }
+  },
+  {
+    "id": "page-054",
+    "text": "Synthetic Page Role 054",
+    "description": "<p>Synthetic description for page-054.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-054</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-054?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-054/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-054"
+    }
+  },
+  {
+    "id": "page-055",
+    "text": "Synthetic Page Role 055",
+    "description": "<p>Synthetic description for page-055.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-055</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-055?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-055/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-055"
+    }
+  },
+  {
+    "id": "page-056",
+    "text": "Synthetic Page Role 056",
+    "description": "<p>Synthetic description for page-056.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-056</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-056?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-056/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-056"
+    }
+  },
+  {
+    "id": "page-057",
+    "text": "Synthetic Page Role 057",
+    "description": "<p>Synthetic description for page-057.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-057</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-057?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-057/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-057"
+    }
+  },
+  {
+    "id": "page-058",
+    "text": "Synthetic Page Role 058",
+    "description": "<p>Synthetic description for page-058.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-058</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-058?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-058/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-058"
+    }
+  },
+  {
+    "id": "page-059",
+    "text": "Synthetic Page Role 059",
+    "description": "<p>Synthetic description for page-059.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-059</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-059?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-059/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-059"
+    }
+  },
+  {
+    "id": "page-060",
+    "text": "Synthetic Page Role 060",
+    "description": "<p>Synthetic description for page-060.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-060</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-060?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-060/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-060"
+    }
+  },
+  {
+    "id": "page-061",
+    "text": "Synthetic Page Role 061",
+    "description": "<p>Synthetic description for page-061.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-061</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-061?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-061/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-061"
+    }
+  },
+  {
+    "id": "page-062",
+    "text": "Synthetic Page Role 062",
+    "description": "<p>Synthetic description for page-062.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-062</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-062?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-062/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-062"
+    }
+  },
+  {
+    "id": "page-063",
+    "text": "Synthetic Page Role 063",
+    "description": "<p>Synthetic description for page-063.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-063</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-063?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-063/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-063"
+    }
+  },
+  {
+    "id": "page-064",
+    "text": "Synthetic Page Role 064",
+    "description": "<p>Synthetic description for page-064.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-064</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-064?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-064/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-064"
+    }
+  },
+  {
+    "id": "page-065",
+    "text": "Synthetic Page Role 065",
+    "description": "<p>Synthetic description for page-065.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-065</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-065?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-065/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-065"
+    }
+  },
+  {
+    "id": "page-066",
+    "text": "Synthetic Page Role 066",
+    "description": "<p>Synthetic description for page-066.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-066</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-066?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-066/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-066"
+    }
+  },
+  {
+    "id": "page-067",
+    "text": "Synthetic Page Role 067",
+    "description": "<p>Synthetic description for page-067.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-067</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-067?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-067/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-067"
+    }
+  },
+  {
+    "id": "page-068",
+    "text": "Synthetic Page Role 068",
+    "description": "<p>Synthetic description for page-068.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-068</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-068?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-068/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-068"
+    }
+  },
+  {
+    "id": "page-069",
+    "text": "Synthetic Page Role 069",
+    "description": "<p>Synthetic description for page-069.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-069</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-069?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-069/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-069"
+    }
+  },
+  {
+    "id": "page-070",
+    "text": "Synthetic Page Role 070",
+    "description": "<p>Synthetic description for page-070.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-070</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-070?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-070/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-070"
+    }
+  },
+  {
+    "id": "page-071",
+    "text": "Synthetic Page Role 071",
+    "description": "<p>Synthetic description for page-071.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-071</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-071?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-071/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-071"
+    }
+  },
+  {
+    "id": "page-072",
+    "text": "Synthetic Page Role 072",
+    "description": "<p>Synthetic description for page-072.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-072</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-072?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-072/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-072"
+    }
+  },
+  {
+    "id": "page-073",
+    "text": "Synthetic Page Role 073",
+    "description": "<p>Synthetic description for page-073.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-073</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-073?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-073/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-073"
+    }
+  },
+  {
+    "id": "page-074",
+    "text": "Synthetic Page Role 074",
+    "description": "<p>Synthetic description for page-074.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-074</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-074?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-074/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-074"
+    }
+  },
+  {
+    "id": "page-075",
+    "text": "Synthetic Page Role 075",
+    "description": "<p>Synthetic description for page-075.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-075</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-075?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-075/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-075"
+    }
+  },
+  {
+    "id": "page-076",
+    "text": "Synthetic Page Role 076",
+    "description": "<p>Synthetic description for page-076.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-076</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-076?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-076/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-076"
+    }
+  },
+  {
+    "id": "page-077",
+    "text": "Synthetic Page Role 077",
+    "description": "<p>Synthetic description for page-077.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-077</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-077?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-077/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-077"
+    }
+  },
+  {
+    "id": "page-078",
+    "text": "Synthetic Page Role 078",
+    "description": "<p>Synthetic description for page-078.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-078</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-078?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-078/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-078"
+    }
+  },
+  {
+    "id": "page-079",
+    "text": "Synthetic Page Role 079",
+    "description": "<p>Synthetic description for page-079.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-079</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-079?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-079/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-079"
+    }
+  },
+  {
+    "id": "page-080",
+    "text": "Synthetic Page Role 080",
+    "description": "<p>Synthetic description for page-080.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-080</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-080?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-080/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-080"
+    }
+  },
+  {
+    "id": "page-081",
+    "text": "Synthetic Page Role 081",
+    "description": "<p>Synthetic description for page-081.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-081</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-081?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-081/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-081"
+    }
+  },
+  {
+    "id": "page-082",
+    "text": "Synthetic Page Role 082",
+    "description": "<p>Synthetic description for page-082.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-082</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-082?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-082/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-082"
+    }
+  },
+  {
+    "id": "page-083",
+    "text": "Synthetic Page Role 083",
+    "description": "<p>Synthetic description for page-083.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-083</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-083?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-083/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-083"
+    }
+  },
+  {
+    "id": "page-084",
+    "text": "Synthetic Page Role 084",
+    "description": "<p>Synthetic description for page-084.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-084</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-084?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-084/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-084"
+    }
+  },
+  {
+    "id": "page-085",
+    "text": "Synthetic Page Role 085",
+    "description": "<p>Synthetic description for page-085.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-085</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-085?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-085/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-085"
+    }
+  },
+  {
+    "id": "page-086",
+    "text": "Synthetic Page Role 086",
+    "description": "<p>Synthetic description for page-086.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-086</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-086?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-086/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-086"
+    }
+  },
+  {
+    "id": "page-087",
+    "text": "Synthetic Page Role 087",
+    "description": "<p>Synthetic description for page-087.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-087</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-087?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-087/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-087"
+    }
+  },
+  {
+    "id": "page-088",
+    "text": "Synthetic Page Role 088",
+    "description": "<p>Synthetic description for page-088.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-088</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-088?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-088/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-088"
+    }
+  },
+  {
+    "id": "page-089",
+    "text": "Synthetic Page Role 089",
+    "description": "<p>Synthetic description for page-089.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-089</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-089?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-089/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-089"
+    }
+  },
+  {
+    "id": "page-090",
+    "text": "Synthetic Page Role 090",
+    "description": "<p>Synthetic description for page-090.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-090</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-090?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-090/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-090"
+    }
+  },
+  {
+    "id": "page-091",
+    "text": "Synthetic Page Role 091",
+    "description": "<p>Synthetic description for page-091.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-091</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-091?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-091/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-091"
+    }
+  },
+  {
+    "id": "page-092",
+    "text": "Synthetic Page Role 092",
+    "description": "<p>Synthetic description for page-092.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-092</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-092?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-092/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-092"
+    }
+  },
+  {
+    "id": "page-093",
+    "text": "Synthetic Page Role 093",
+    "description": "<p>Synthetic description for page-093.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-093</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-093?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-093/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-093"
+    }
+  },
+  {
+    "id": "page-094",
+    "text": "Synthetic Page Role 094",
+    "description": "<p>Synthetic description for page-094.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-094</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-094?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-094/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-094"
+    }
+  },
+  {
+    "id": "page-095",
+    "text": "Synthetic Page Role 095",
+    "description": "<p>Synthetic description for page-095.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-095</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-095?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-095/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-095"
+    }
+  },
+  {
+    "id": "page-096",
+    "text": "Synthetic Page Role 096",
+    "description": "<p>Synthetic description for page-096.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-096</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-096?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-096/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-096"
+    }
+  },
+  {
+    "id": "page-097",
+    "text": "Synthetic Page Role 097",
+    "description": "<p>Synthetic description for page-097.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-097</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-097?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-097/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-097"
+    }
+  },
+  {
+    "id": "page-098",
+    "text": "Synthetic Page Role 098",
+    "description": "<p>Synthetic description for page-098.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-098</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-098?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-098/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-098"
+    }
+  },
+  {
+    "id": "page-099",
+    "text": "Synthetic Page Role 099",
+    "description": "<p>Synthetic description for page-099.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item page-099</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-page-board/page-099?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-page-board/page-099/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "US",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "page-099"
+    }
+  }
+]

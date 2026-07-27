@@ -1,0 +1,86 @@
+[
+  {
+    "id": "g-300",
+    "text": "Synthetic Gamma Role",
+    "description": "<p>Synthetic description for g-300.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item g-300</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-global-board/g-300?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-global-board/g-300/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "CA",
+    "workplaceType": "remote",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "g-300"
+    }
+  },
+  {
+    "id": "g-100",
+    "text": "Synthetic Alpha Role",
+    "description": "<p>Synthetic description for g-100.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item g-100</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-global-board/g-100?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-global-board/g-100/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Remote",
+        "Synthetic Coast"
+      ],
+      "department": "Synthetic Product"
+    },
+    "country": "US",
+    "workplaceType": "on-site",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "g-100"
+    }
+  },
+  {
+    "id": "g-200",
+    "text": "Synthetic Beta Role",
+    "description": "<p>Synthetic description for g-200.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item g-200</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.lever.co/synthetic-global-board/g-200?source=fixture#posting",
+    "applyUrl": "https://jobs.lever.co/synthetic-global-board/g-200/apply?source=fixture#application",
+    "categories": {
+      "location": "Synthetic Plains",
+      "department": "Synthetic Programs"
+    },
+    "country": "GB",
+    "workplaceType": "unspecified",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "g-200"
+    }
+  }
+]

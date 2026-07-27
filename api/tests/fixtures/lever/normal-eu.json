@@ -1,0 +1,86 @@
+[
+  {
+    "id": "eu-30",
+    "text": "Synthetic EU Gamma",
+    "description": "<p>Synthetic description for eu-30.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item eu-30</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-30?source=fixture#posting",
+    "applyUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-30/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic City, ZZ",
+        "Remote",
+        "Remote"
+      ],
+      "location": "Unused fallback",
+      "department": "Synthetic Engineering",
+      "team": "Ignored team"
+    },
+    "country": "DE",
+    "workplaceType": "hybrid",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "eu-30"
+    }
+  },
+  {
+    "id": "eu-10",
+    "text": "Synthetic EU Alpha",
+    "description": "<p>Synthetic description for eu-10.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item eu-10</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-10?source=fixture#posting",
+    "applyUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-10/apply?source=fixture#application",
+    "categories": {
+      "allLocations": [
+        "Synthetic EU City",
+        "Remote"
+      ],
+      "department": "Synthetic EU Product"
+    },
+    "country": "FR",
+    "workplaceType": "remote",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "eu-10"
+    }
+  },
+  {
+    "id": "eu-20",
+    "text": "Synthetic EU Beta",
+    "description": "<p>Synthetic description for eu-20.</p>",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Invented item eu-20</li>"
+      }
+    ],
+    "additional": "<p>Synthetic closing text.</p>",
+    "hostedUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-20?source=fixture#posting",
+    "applyUrl": "https://jobs.eu.lever.co/synthetic-eu-board/eu-20/apply?source=fixture#application",
+    "categories": {
+      "location": "Synthetic EU Plains",
+      "department": "Synthetic EU Programs"
+    },
+    "country": "NL",
+    "workplaceType": "on-site",
+    "createdAt": 1234567890,
+    "unknownFixtureField": {
+      "invented": true,
+      "id": "eu-20"
+    }
+  }
+]
