@@ -98,6 +98,7 @@ class _Bound:
     adapter_kind: str
     endpoint: EndpointSnapshot | None
     conditional: ConditionalHeaders | None
+    pre_adapter_failure: RunnerFailureCode | None
 
 
 def _utc(value: object) -> datetime:
@@ -401,6 +402,7 @@ def _locked_bound(bound: _Bound, run: dict[str, Any]) -> _Bound:
         adapter_kind=bound.adapter_kind,
         endpoint=bound.endpoint,
         conditional=bound.conditional,
+        pre_adapter_failure=bound.pre_adapter_failure,
     )
 
 
@@ -634,12 +636,27 @@ def _bind(
                         adapter_kind=adapter_kind,
                         endpoint=None,
                         conditional=None,
+                        pre_adapter_failure=None,
                     )
                 endpoint = lock_endpoint(conn, endpoint_id)
                 if endpoint is None:
-                    raise RunnerTargetError(RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND)
+                    return _Bound(
+                        run=run,
+                        endpoint_id=endpoint_id,
+                        adapter_kind=adapter_kind,
+                        endpoint=None,
+                        conditional=None,
+                        pre_adapter_failure=RunnerFailureCode.ENDPOINT_DELETED,
+                    )
                 if _kind(endpoint) != adapter_kind:
-                    raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+                    return _Bound(
+                        run=run,
+                        endpoint_id=endpoint_id,
+                        adapter_kind=adapter_kind,
+                        endpoint=None,
+                        conditional=None,
+                        pre_adapter_failure=RunnerFailureCode.ENDPOINT_CHANGED,
+                    )
             else:
                 endpoint = lock_endpoint(conn, endpoint_id)
                 if endpoint is None:
@@ -661,6 +678,7 @@ def _bind(
                 adapter_kind=adapter_kind,
                 endpoint=endpoint,
                 conditional=conditional,
+                pre_adapter_failure=None,
             )
     except RunnerTargetError:
         raise
@@ -953,6 +971,13 @@ async def run_one_endpoint(
         started_at=started_at,
     )
 
+    if bound.pre_adapter_failure is not None:
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=bound.pre_adapter_failure,
+        )
     if bound.endpoint is None:
         return _coordinate(engine, bound, clock)
 

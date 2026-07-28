@@ -105,7 +105,10 @@ Never adopt an apparently unbound existing run.
 For a compatible resumed run:
 
 - matching attempt: return Task 006 replay and retry finalization without I/O;
-- running without an attempt: continue from the endpoint binding;
+- running without an attempt: continue from the persisted endpoint binding;
+  coordinate `runner.endpoint_deleted` when the live endpoint is missing and
+  `runner.endpoint_changed` when its exact kind differs from the persisted
+  adapter kind;
 - terminal without an attempt: return it only when its owned binding, status,
   error, counts, steps, and timestamps form a valid Task 007 terminal result;
   otherwise raise `runner.pipeline_run_incompatible`; and
@@ -114,7 +117,10 @@ For a compatible resumed run:
 A terminal replay derives its endpoint ID and adapter kind from the persisted
 binding. It does not require, lock, or validate the live `source_endpoint`,
 construct an adapter, call the clock, or write. Only a running run without a
-persisted attempt loads the current endpoint and reconstructs validators.
+persisted attempt inspects the current endpoint. Missing or exact-kind-mismatch
+outcomes on that already-owned run are explicit local mutation candidates, not
+pre-binding target errors; matching-kind runs reconstruct validators and
+continue.
 
 A valid terminal result without an attempt has reserved counts, `status='failed'`,
 one exact table-listed run error whose `source_fetch` column is `No` or `No new
@@ -126,6 +132,11 @@ local no-attempt outcome enters one coordination transaction that locks the
 owned run, revalidates its binding, checks the matching attempt and terminal
 state, and selects the durable winner before another write. Code already
 holding that lock finalizes on the same connection.
+
+A retry after rolled-back no-attempt finalization resumes from the persisted
+binding without a factory or adapter call. A concurrently committed attempt or
+valid terminal result still wins; otherwise the current endpoint-deleted or
+endpoint-changed candidate finalizes under the run lock.
 
 Concurrent eligible same-key callers may each call `list_postings()` once
 before outcome coordination. The first coordinated durable attempt or valid
@@ -165,6 +176,12 @@ After return/typed transport failure, re-read under a short shared lock and
 compare all seven columns. Missing is `runner.endpoint_deleted`; difference is
 `runner.endpoint_changed`; neither calls Task 006. Review covers the residual
 race.
+
+For `run_id=None`, a missing endpoint remains the pre-binding
+`RunnerTargetError` `runner.source_endpoint_not_found` and no run is created.
+For an already-valid owned running run without an attempt, a missing endpoint
+or exact live-kind mismatch instead enters coordination as
+`runner.endpoint_deleted` or `runner.endpoint_changed`.
 
 ## Adapter registry and selection
 
@@ -275,6 +292,9 @@ Phase-one failure rolls back creation and performs no I/O. A Task 006
 database/target/input failure finalizes failed when no attempt committed. If
 Task 006 committed but finalization fails, only coordination/finalization
 rolls back; the run remains running and retry discovers the committed attempt.
+A failed no-attempt mutation finalization also leaves the reserved running run
+retryable; retry compares the live endpoint with the persisted kind and
+coordinates the mutation without adapter I/O.
 A coordination finalization failure returns `finalized=False`,
 `run_status='running'`, `runner.finalization_database_error`, and the retryable
 run ID.
@@ -327,7 +347,7 @@ error” is persisted and returned; “Return-only” preserves the prior run er
 | `runner.invalid_config_version` | `RunnerInputError` | Invalid config string | No |
 | `runner.invalid_clock` | `RunnerInputError` | Invalid clock before binding | No |
 | `runner.pipeline_run_not_found` | `RunnerTargetError` | Positive run ID absent | No |
-| `runner.source_endpoint_not_found` | `RunnerTargetError` | Endpoint absent before binding | No |
+| `runner.source_endpoint_not_found` | `RunnerTargetError` | Endpoint absent on `run_id=None` before creation/binding | No |
 | `runner.pipeline_run_incompatible` | `RunnerTargetError` | Existing run is foreign, malformed, or mismatched | No owned matching row |
 | `runner.database_error` | `RunnerDatabaseError` | Database failure before a result can form | No new row |
 | `runner.endpoint_paused` | Run error | Paused endpoint | No |
@@ -337,8 +357,8 @@ error” is persisted and returned; “Return-only” preserves the prior run er
 | `runner.adapter_unsupported` | Run error | Custom kind | No |
 | `runner.endpoint_malformed` | Run error | Row violates schema-domain assumptions | No |
 | `runner.endpoint_policy` | Run error | Typed adapter endpoint rejection | No |
-| `runner.endpoint_deleted` | Run error | Endpoint deleted after snapshot | No |
-| `runner.endpoint_changed` | Run error | Endpoint snapshot mismatch | No |
+| `runner.endpoint_deleted` | Run error | Endpoint deleted after snapshot or before retry of an owned running binding | No |
+| `runner.endpoint_changed` | Run error | Endpoint snapshot mismatch or live-kind mismatch on retry of an owned running binding | No |
 | `runner.adapter_registry_defect` | Run error | Missing/raising/bad-slug factory | No |
 | `runner.adapter_defect` | Run error | Unexpected adapter error/category | No |
 | `runner.clock_invalid` | Run error | Invalid clock after binding | No |
@@ -442,7 +462,8 @@ Using invented endpoints and injected protocol-compatible adapters:
   unrelated manual runs; strict terminal-without-fetch validation;
 - retry after attempt/finalization failure, both concurrent winner orders, new
   manual runs, Task 006 replay preservation, endpoint-independent terminal
-  replay, terminal timestamp preservation, and fresh-result relationship
+  replay, retry after rolled-back endpoint-deleted/endpoint-changed
+  finalization, terminal timestamp preservation, and fresh-result relationship
   validation; and
 - exact sentinel redaction for every prohibited field.
 
@@ -465,7 +486,9 @@ Use disposable PostgreSQL 16 + pgvector through the guarded loopback
   when two endpoints bind one run; and distinct new manual runs;
 - terminal replay after endpoint deletion or kind change, with no factory,
   adapter, clock, endpoint dependency, or write;
-- rollback/closed behavior for failure in binding, validators, recheck, Task 006, and finalization; and
+- rollback/closed behavior for failure in binding, validators, recheck, Task 006, and finalization;
+- pre-binding missing-endpoint rejection plus retryable no-attempt finalization
+  after endpoint deletion or exact kind change; and
 - privacy-safe stored errors/logs with unique sentinels.
 
 Concurrency tests use independent connections and bounded joins. Every test
@@ -512,6 +535,9 @@ creates invented prerequisites and cleans up only its own rows.
 - [ ] Every matrix row has exact fields/error/counts/result and resumability.
 - [ ] Terminal replay is independent of the live endpoint and performs no
       adapter, clock, or write work.
+- [ ] A missing endpoint is `source_endpoint_not_found` only before
+      creation/binding; an owned running binding coordinates endpoint deletion
+      or exact kind change and remains retryable after finalization rollback.
 - [ ] Counts use the persisted binding and persisted attempt facts, never
       double count, and cannot point at another run or endpoint.
 - [ ] Unit/PostgreSQL tests cover every case without live traffic.

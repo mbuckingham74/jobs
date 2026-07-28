@@ -849,7 +849,7 @@ def test_unrelated_manual_run_with_empty_counts_is_rejected_without_mutation(
         "foreign_config",
         "foreign_schema",
         "foreign_endpoint",
-        "foreign_kind",
+        "malformed_kind",
         "extra_count",
         "missing_count",
         "boolean_integer",
@@ -871,8 +871,8 @@ def test_every_foreign_or_malformed_owned_projection_is_rejected_without_mutatio
         counts["schema_version"] = 2
     elif case == "foreign_endpoint":
         counts["endpoint_id"] = endpoint_id + 1
-    elif case == "foreign_kind":
-        counts["adapter_kind"] = "lever"
+    elif case == "malformed_kind":
+        counts["adapter_kind"] = "private-kind"
     elif case == "extra_count":
         counts["private_extra"] = 1
     elif case == "missing_count":
@@ -1293,6 +1293,162 @@ def test_committed_attempt_survives_finalization_failure_and_retry_replays(
     assert replay.ingestion_result.replayed is True
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected"),
+    [
+        ("delete", RunnerFailureCode.ENDPOINT_DELETED),
+        ("change_kind", RunnerFailureCode.ENDPOINT_CHANGED),
+    ],
+)
+def test_no_attempt_mutation_survives_finalization_failure_and_retry(
+    ingestion_engine,
+    monkeypatch,
+    mutation: str,
+    expected: RunnerFailureCode,
+) -> None:
+    endpoint_id = _seed(ingestion_engine)
+
+    class MutatingAdapter(_Adapter):
+        async def list_postings(self, endpoint, conditional):
+            self.calls.append((endpoint, conditional))
+            with ingestion_engine.begin() as conn:
+                if mutation == "delete":
+                    conn.execute(
+                        text("DELETE FROM source_endpoint WHERE id=:id"),
+                        {"id": endpoint_id},
+                    )
+                else:
+                    conn.execute(
+                        text("UPDATE source_endpoint SET kind='lever' WHERE id=:id"),
+                        {"id": endpoint_id},
+                    )
+            return self.outcome
+
+    original_finish_run = workflow_service.finish_run
+
+    def fail_finalization(*args, **kwargs):
+        raise OperationalError("finalize", {}, Exception("private-db-sentinel"))
+
+    adapter = MutatingAdapter()
+    monkeypatch.setattr(workflow_service, "finish_run", fail_finalization)
+    first = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=None,
+            config_version="runner-v1",
+            adapters=_registry(adapter, []),
+            clock=_clock(),
+        )
+    )
+    assert first.run_status == "running"
+    assert first.finalized is False
+    assert first.failure_code is RunnerFailureCode.FINALIZATION_DATABASE_ERROR
+    assert first.ingestion_result is None
+    assert len(adapter.calls) == 1
+    run_id = first.run_id
+    reserved = _run_row(ingestion_engine, run_id)
+    assert reserved["status"] == "running"
+    assert reserved["counts"] == reserved_counts(endpoint_id, "greenhouse")
+    assert reserved["started_at"] == BASE
+    with ingestion_engine.connect() as conn:
+        assert (
+            conn.execute(
+                text("SELECT count(*) FROM source_fetch WHERE run_id=:run_id"),
+                {"run_id": run_id},
+            ).scalar_one()
+            == 0
+        )
+
+    monkeypatch.setattr(workflow_service, "finish_run", original_finish_run)
+    retry = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=run_id,
+            config_version="runner-v1",
+            adapters=AdapterRegistry(
+                greenhouse=lambda: pytest.fail("greenhouse factory called on mutation retry"),
+                lever=lambda: pytest.fail("lever factory called on mutation retry"),
+            ),
+            clock=_Clock(BASE + timedelta(seconds=4)),
+        )
+    )
+    assert retry.run_status == "failed"
+    assert retry.finalized is True
+    assert retry.failure_code is expected
+    assert retry.ingestion_result is None
+    assert retry.endpoint_kind == "greenhouse"
+    terminal = _run_row(ingestion_engine, run_id)
+    assert terminal["status"] == "failed"
+    assert terminal["counts"] == reserved_counts(endpoint_id, "greenhouse")
+    assert terminal["error"] == {"code": expected.value}
+    assert terminal["started_at"] == reserved["started_at"]
+    with ingestion_engine.connect() as conn:
+        assert (
+            conn.execute(
+                text("SELECT count(*) FROM source_fetch WHERE run_id=:run_id"),
+                {"run_id": run_id},
+            ).scalar_one()
+            == 0
+        )
+
+    def fail_terminal_endpoint_access(*args, **kwargs):
+        pytest.fail("live endpoint accessed on terminal replay")
+
+    def fail_terminal_write(*args, **kwargs):
+        pytest.fail("write attempted on terminal replay")
+
+    monkeypatch.setattr(workflow_service, "lock_endpoint", fail_terminal_endpoint_access)
+    monkeypatch.setattr(workflow_service, "finish_run", fail_terminal_write)
+    replay = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=run_id,
+            config_version="runner-v1",
+            adapters=AdapterRegistry(
+                greenhouse=lambda: pytest.fail("greenhouse factory called on terminal replay"),
+                lever=lambda: pytest.fail("lever factory called on terminal replay"),
+            ),
+            clock=_Clock(),
+        )
+    )
+    assert replay == retry
+    assert replay.endpoint_kind == "greenhouse"
+    assert _run_row(ingestion_engine, run_id) == terminal
+
+
+def test_new_run_with_absent_endpoint_raises_pre_binding_error_without_run(
+    ingestion_engine,
+) -> None:
+    with ingestion_engine.connect() as conn:
+        endpoint_id = int(
+            conn.execute(
+                text("SELECT COALESCE(max(id), 0) + 1000 FROM source_endpoint")
+            ).scalar_one()
+        )
+        before = conn.execute(text("SELECT count(*) FROM pipeline_run")).scalar_one()
+
+    with pytest.raises(RunnerTargetError) as caught:
+        asyncio.run(
+            run_one_endpoint(
+                engine=ingestion_engine,
+                source_endpoint_id=endpoint_id,
+                run_id=None,
+                config_version="runner-v1",
+                adapters=AdapterRegistry(
+                    greenhouse=lambda: pytest.fail("factory called for absent endpoint"),
+                    lever=lambda: pytest.fail("factory called for absent endpoint"),
+                ),
+                clock=_Clock(BASE),
+            )
+        )
+    assert caught.value.code is RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND
+    with ingestion_engine.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM pipeline_run")).scalar_one() == before
+
+
 def test_logs_results_and_run_errors_redact_prohibited_sentinels(
     ingestion_engine,
     caplog,
@@ -1388,8 +1544,10 @@ def test_cancellation_finalizes_failed_and_propagates_original(
     assert fetch_count == 0
 
 
-def test_concurrent_attempt_winner_overrides_later_adapter_defect(
+@pytest.mark.parametrize("late_failure", ["adapter_defect", "endpoint_change"])
+def test_concurrent_attempt_winner_overrides_later_local_failure(
     ingestion_engine,
+    late_failure: str,
 ) -> None:
     endpoint_id = _seed(ingestion_engine)
     with ingestion_engine.begin() as conn:
@@ -1425,6 +1583,13 @@ def test_concurrent_attempt_winner_overrides_later_adapter_defect(
             adapter_calls.append(1)
             defect_started.set()
             assert attempt_done.wait(timeout=10)
+            if late_failure == "endpoint_change":
+                with ingestion_engine.begin() as conn:
+                    conn.execute(
+                        text("UPDATE source_endpoint SET token='changed-token' WHERE id=:id"),
+                        {"id": endpoint_id},
+                    )
+                return self.outcome
             raise RuntimeError("private-late-adapter-defect")
 
     results = {}
