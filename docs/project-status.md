@@ -8,18 +8,20 @@ GitHub pull requests. Approved, bounded work is defined in `tasks/*.md`, while
 This document is a human-readable index, not a replacement for those
 authoritative sources.
 
-Implementation baseline reviewed through the T006 squash commit:
-`ade6d82cadec14f172f5c4925730b6780883ec79`.
+Implementation baseline reviewed through the T007 squash commit:
+`0349f4313d57ccc2e32f3aeb46cca44a566bef6b`.
 
 ## Current position
 
-The project remains in Phase 1. Tasks 001–006 have been implemented and
-squash-merged. Task 006 added the idempotent ATS ingestion boundary. Greenhouse
-and Lever results can now be persisted through deterministic canonical hashing,
-immutable posting versions, durable current-version selection, replay-safe
-endpoint-attempt idempotency, safe close/reopen reconciliation, and fail-closed
-incomplete-fetch behavior. Adapter fetching is not yet wired into ingestion,
-and no complete pipeline runner exists. No Task 007 has been defined.
+The project remains in Phase 1. Tasks 001–007 have been implemented and
+squash-merged. Task 007 added the manually invokable one-endpoint
+Greenhouse/Lever fetch-to-ingestion runner. One persisted eligible endpoint can
+now be snapshotted, fetched through its existing adapter, passed through Task
+006 ingestion, and finalized through a replay-safe pipeline-run lifecycle.
+Conditional validators are reconstructed from prior safe source-fetch history,
+concurrent same-run outcomes are serialized to one durable winner, and terminal
+replay and endpoint-mutation retry behavior are implemented. No Task 008 has
+been defined.
 
 ## Completed work
 
@@ -31,6 +33,7 @@ and no complete pipeline runner exists. No Task 007 has been defined.
 | 004 — Phase 1 Greenhouse adapter | Shared ATS contract and bounded, deterministic Greenhouse adapter with fixtures | [#4 — Build Greenhouse adapter](https://github.com/mbuckingham74/jobs/pull/4) | Implemented and squash-merged |
 | 005 — Phase 1 Lever adapter | Bounded, paginated global/EU Lever adapter with fixtures | [#5 — Build Lever adapter](https://github.com/mbuckingham74/jobs/pull/5) | Implemented and squash-merged |
 | 006 — Phase 1 idempotent ATS ingestion | Canonical hashing, posting/version persistence, durable current-version tracking, replay-safe attempts, and safe reconciliation | [#6 — Build idempotent ATS ingestion](https://github.com/mbuckingham74/jobs/pull/6) | Implemented and squash-merged |
+| 007 — One-endpoint fetch-to-ingestion runner | Endpoint snapshot, adapter invocation, conditional validators, Task 006 delegation, run ownership and replay, and durable finalization | [#8 — Build one-endpoint fetch-to-ingestion runner](https://github.com/mbuckingham74/jobs/pull/8) | Implemented and squash-merged |
 
 ## Phase 1 progress
 
@@ -47,6 +50,11 @@ and no complete pipeline runner exists. No Task 007 has been defined.
 - Immutable posting versions with durable current-version selection
 - Safe incomplete-fetch, close, and reopen behavior
 - Suspicious-zero fail-closed protection and endpoint transition signaling
+- Manually invoked Greenhouse/Lever one-endpoint fetch-to-ingestion execution
+- Conditional-validator reconstruction from safe persisted fetch history
+- Runner-owned manual pipeline-run creation, strict resumption, and terminal replay
+- Serialized durable attempt-versus-runner-failure outcome selection
+- Endpoint snapshot recheck and retry-safe deletion/kind-change handling
 
 ### Deferred
 
@@ -56,8 +64,9 @@ dragging.
 
 ### Remaining
 
-- A bounded Greenhouse/Lever fetch-to-ingestion runner or orchestration slice,
-  including run/endpoint-attempt lifecycle and conditional-validator reuse
+- Bounded multi-endpoint or daily pipeline orchestration, including eligible
+  endpoint selection, per-endpoint invocation, aggregate lifecycle, and partial
+  failure reporting
 - Deterministic filters
 - Deep scoring
 - Frozen zero-to-three queue
@@ -69,13 +78,15 @@ multiple tasks, and one task may cover more than one closely related group.
 
 ## Likely next decision
 
-The leading next decision is the exact boundary for connecting the merged
-Greenhouse and Lever adapters to Task 006 ingestion:
+The leading next decision is whether the next bounded task should:
 
-- first implement the smallest one-endpoint fetch-to-ingestion runner; or
-- define a broader multi-endpoint pipeline-run lifecycle.
+1. add deterministic hard filters over persisted postings; or
+2. add the smallest multi-endpoint orchestration layer over the merged Task 007
+   callable.
 
-This is a decision to make, not an approved Task 007 scope.
+Filters advance posting quality and prepare later scoring; multi-endpoint
+orchestration advances daily operational coverage across the hand-picked
+company set. This remains a decision to make, not a defined Task 008.
 
 ## Later phases
 
