@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 
 import pytest
 
@@ -16,6 +16,18 @@ from app.ingestion.canonical import (
     prepare_fetch_result,
 )
 from app.sources.ats.contracts import FetchResult, RawLocation, RawPosting
+
+MALFORMED_TIMEZONE_SENTINEL = "sensitive-malformed-timezone-sentinel"
+
+
+class _MalformedTimezone(tzinfo):
+    def utcoffset(self, value: datetime | None):
+        raise RuntimeError(f"malformed timezone: {MALFORMED_TIMEZONE_SENTINEL}")
+
+
+class _InterruptingTimezone(tzinfo):
+    def utcoffset(self, value: datetime | None):
+        raise KeyboardInterrupt
 
 
 def _posting(**overrides) -> RawPosting:
@@ -194,3 +206,21 @@ def test_optional_types_and_timezone_awareness_are_enforced() -> None:
                 http_status=200,
             )
         )
+
+
+@pytest.mark.parametrize("field", ["source_published_at", "source_updated_at"])
+def test_malformed_source_timezone_is_a_redacted_invalid_observation(field: str) -> None:
+    posting = _posting(**{field: datetime(2026, 7, 1, tzinfo=_MalformedTimezone())})
+
+    with pytest.raises(InvalidObservation) as exc_info:
+        prepare_fetch_result(FetchResult(postings=[posting], complete=True, http_status=200))
+
+    assert str(exc_info.value) == "invalid source timestamp"
+    assert MALFORMED_TIMEZONE_SENTINEL not in str(exc_info.value)
+
+
+def test_source_timezone_base_exceptions_are_not_swallowed() -> None:
+    posting = _posting(source_updated_at=datetime(2026, 7, 1, tzinfo=_InterruptingTimezone()))
+
+    with pytest.raises(KeyboardInterrupt):
+        prepare_fetch_result(FetchResult(postings=[posting], complete=True, http_status=200))

@@ -45,7 +45,12 @@ logger = logging.getLogger("app.ingestion")
 
 
 def _aware(value: datetime) -> bool:
-    return value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None
+    if value.tzinfo is None:
+        return False
+    try:
+        return value.tzinfo.utcoffset(value) is not None
+    except Exception:
+        return False
 
 
 def _validate_call_metadata(

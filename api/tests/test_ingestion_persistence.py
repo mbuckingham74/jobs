@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import threading
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta, tzinfo
 from types import MethodType
 
 import pytest
@@ -18,6 +20,13 @@ from app.sources.ats.contracts import FetchResult, RawLocation, RawPosting
 pytestmark = pytest.mark.postgres
 
 BASE = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)
+MALFORMED_TIMEZONE_ERROR = "malformed timezone offset"
+MALFORMED_TIMEZONE_SENTINEL = "sensitive-persistence-timezone-sentinel"
+
+
+class _MalformedTimezone(tzinfo):
+    def utcoffset(self, value: datetime | None):
+        raise RuntimeError(f"{MALFORMED_TIMEZONE_ERROR}: {MALFORMED_TIMEZONE_SENTINEL}")
 
 
 def _seed_prerequisites(
@@ -375,6 +384,51 @@ def test_invalid_observation_retains_only_independently_valid_facts(
         assert rows[1]["etag"] is None
         assert rows[1]["last_modified"] == "kept-last-modified"
         assert len(list(conn.execute(select(posting)).all())) == 0
+
+
+@pytest.mark.parametrize("field", ["source_published_at", "source_updated_at"])
+def test_malformed_source_timezone_commits_only_a_redacted_failed_fetch(
+    ingestion_engine,
+    caplog,
+    field: str,
+) -> None:
+    _seed_prerequisites(ingestion_engine, run_ids=(201,))
+    service = IngestionService(ingestion_engine)
+    malformed_timestamp = datetime(2026, 7, 1, tzinfo=_MalformedTimezone())
+    malformed_posting = replace(_raw_posting(), **{field: malformed_timestamp})
+
+    with caplog.at_level(logging.INFO, logger="app.ingestion"):
+        result = _ingest(
+            service,
+            run_id=201,
+            minute=1,
+            fetch=_fetch(malformed_posting),
+        )
+
+    assert result.source_fetch_status == "failed"
+    assert result.reason_code == INVALID_OBSERVATION
+    assert result.postings_seen == 0
+    assert result.source_fetch_postings_new == 0
+    assert result.source_fetch_postings_changed == 0
+    assert result.postings_created == 0
+    assert result.postings_updated == 0
+    assert result.versions_created == 0
+    assert result.postings_closed == 0
+    assert result.postings_reopened == 0
+    assert result.created_posting_version_ids == ()
+    with ingestion_engine.connect() as conn:
+        fetch_rows = list(conn.execute(select(source_fetch)).mappings())
+        assert len(fetch_rows) == 1
+        assert fetch_rows[0]["status"] == "failed"
+        assert fetch_rows[0]["postings_seen"] == 0
+        assert fetch_rows[0]["postings_new"] == 0
+        assert fetch_rows[0]["postings_changed"] == 0
+        assert fetch_rows[0]["error"] == {"code": INVALID_OBSERVATION}
+        assert len(list(conn.execute(select(posting)).all())) == 0
+        assert len(list(conn.execute(select(posting_version)).all())) == 0
+    surfaced = f"{result!r}\n{caplog.text}"
+    assert MALFORMED_TIMEZONE_ERROR not in surfaced
+    assert MALFORMED_TIMEZONE_SENTINEL not in surfaced
 
 
 def test_every_transport_code_and_failed_key_replay(ingestion_engine) -> None:

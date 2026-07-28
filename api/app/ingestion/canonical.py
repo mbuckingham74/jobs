@@ -139,7 +139,12 @@ def canonical_json_and_hash(
 
 
 def _is_aware(value: datetime) -> bool:
-    return value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None
+    if value.tzinfo is None:
+        return False
+    try:
+        return value.tzinfo.utcoffset(value) is not None
+    except Exception:
+        return False
 
 
 def _json_snapshot(value: object, active: set[int] | None = None) -> object:
