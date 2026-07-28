@@ -6,11 +6,8 @@ upgrade/downgrade behavior (leaving ``0001_core_schema``'s tables untouched),
 the named constraints and indexes, and that no inline unnamed ``sa.ForeignKey``
 column is used.
 
-It additionally validates that the Alembic graph is a single linear chain:
-exactly two revision files are permitted (``0001_core_schema`` and
-``0002_resume_source_state``), ``0001_core_schema`` is the sole root with
-``down_revision = None``, ``0002_resume_source_state`` is the sole head pointing
-back at it, and no extra revision, branch, or second head exists.
+It additionally validates that the Alembic graph remains a single linear chain
+through the later ``0003_posting_current_version`` revision.
 """
 
 from __future__ import annotations
@@ -63,6 +60,7 @@ _VERSIONS_DIR = _API_DIR / "migrations" / "versions"
 PERMITTED_REVISIONS = {
     "0001_core_schema",
     "0002_resume_source_state",
+    "0003_posting_current_version",
 }
 
 
@@ -288,13 +286,13 @@ def test_identity_column_is_by_default(revision_path: Path) -> None:
 # ------------------------------------------------------------------
 
 
-def test_exactly_two_revisions_are_permitted() -> None:
+def test_exactly_three_revisions_are_permitted() -> None:
     modules = _all_revision_modules()
     revisions = {m.revision for m, _ in modules}
     assert (
         revisions == PERMITTED_REVISIONS
     ), f"expected exactly {PERMITTED_REVISIONS}; found {revisions}"
-    assert len(modules) == 2, f"expected exactly two revisions; found {len(modules)}"
+    assert len(modules) == 3, f"expected exactly three revisions; found {len(modules)}"
 
 
 def test_single_linear_chain_with_one_head() -> None:
@@ -305,8 +303,9 @@ def test_single_linear_chain_with_one_head() -> None:
     heads = [rid for rid in by_id if rid not in {m.down_revision for m in by_id.values()}]
 
     assert roots == ["0001_core_schema"], roots
-    assert heads == ["0002_resume_source_state"], heads
+    assert heads == ["0003_posting_current_version"], heads
     assert by_id[REVISION_ID].down_revision == DOWN_REVISION  # type: ignore[attr-defined]
+    assert by_id["0003_posting_current_version"].down_revision == REVISION_ID  # type: ignore[attr-defined]
 
 
 def test_0001_core_schema_chain_invariants_preserved() -> None:

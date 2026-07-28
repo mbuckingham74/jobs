@@ -130,3 +130,21 @@ def postgres_engine(postgres_url: str):
             text("SELECT setval(pg_get_serial_sequence('resume_source_state','id'), 1, false)")
         )
     engine.dispose()
+
+
+@pytest.fixture()
+def ingestion_engine(postgres_url: str):
+    """Disposable-schema engine with per-test ingestion row cleanup."""
+
+    from sqlalchemy import create_engine
+
+    engine = create_engine(postgres_url, pool_pre_ping=True)
+    yield engine
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM source_fetch"))
+        conn.execute(text("DELETE FROM posting_version"))
+        conn.execute(text("DELETE FROM posting"))
+        conn.execute(text("DELETE FROM pipeline_run"))
+        conn.execute(text("DELETE FROM source_endpoint"))
+        conn.execute(text("DELETE FROM company"))
+    engine.dispose()
