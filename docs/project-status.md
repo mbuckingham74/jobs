@@ -8,15 +8,18 @@ GitHub pull requests. Approved, bounded work is defined in `tasks/*.md`, while
 This document is a human-readable index, not a replacement for those
 authoritative sources.
 
-Implementation baseline reviewed through the T005 squash commit:
-`537cd4c5f9a1a1bfb24f023a69041d79d2905a5d`.
+Implementation baseline reviewed through the T006 squash commit:
+`ade6d82cadec14f172f5c4925730b6780883ec79`.
 
 ## Current position
 
-The project is in Phase 1. Tasks 001–005 have been implemented and
-squash-merged. The repository now contains the runnable service foundation,
-Phase 1 database schema, portfolio résumé bootstrap, Greenhouse adapter, and
-Lever adapter. No Task 006 has been defined.
+The project remains in Phase 1. Tasks 001–006 have been implemented and
+squash-merged. Task 006 added the idempotent ATS ingestion boundary. Greenhouse
+and Lever results can now be persisted through deterministic canonical hashing,
+immutable posting versions, durable current-version selection, replay-safe
+endpoint-attempt idempotency, safe close/reopen reconciliation, and fail-closed
+incomplete-fetch behavior. Adapter fetching is not yet wired into ingestion,
+and no complete pipeline runner exists. No Task 007 has been defined.
 
 ## Completed work
 
@@ -27,6 +30,7 @@ Lever adapter. No Task 006 has been defined.
 | 003 — Phase 1 portfolio résumé bootstrap | Conditional PDF import, extraction validation, versioning, initial activation, and bootstrap CLI | [#3 — Build portfolio resume bootstrap](https://github.com/mbuckingham74/jobs/pull/3) | Implemented and squash-merged |
 | 004 — Phase 1 Greenhouse adapter | Shared ATS contract and bounded, deterministic Greenhouse adapter with fixtures | [#4 — Build Greenhouse adapter](https://github.com/mbuckingham74/jobs/pull/4) | Implemented and squash-merged |
 | 005 — Phase 1 Lever adapter | Bounded, paginated global/EU Lever adapter with fixtures | [#5 — Build Lever adapter](https://github.com/mbuckingham74/jobs/pull/5) | Implemented and squash-merged |
+| 006 — Phase 1 idempotent ATS ingestion | Canonical hashing, posting/version persistence, durable current-version tracking, replay-safe attempts, and safe reconciliation | [#6 — Build idempotent ATS ingestion](https://github.com/mbuckingham74/jobs/pull/6) | Implemented and squash-merged |
 
 ## Phase 1 progress
 
@@ -38,14 +42,22 @@ Lever adapter. No Task 006 has been defined.
 - Shared ATS adapter contract
 - Greenhouse adapter with recorded synthetic fixtures
 - Lever global/EU adapter with recorded synthetic fixtures
+- Deterministic posting canonicalization and SHA-256 content hashing
+- Idempotent endpoint-attempt ingestion and replay
+- Immutable posting versions with durable current-version selection
+- Safe incomplete-fetch, close, and reopen behavior
+- Suspicious-zero fail-closed protection and endpoint transition signaling
+
+### Deferred
+
+Ashby is deliberately deferred until the merged Greenhouse and Lever path works
+end to end. The specification expressly permits cutting Ashby if Phase 1 begins
+dragging.
 
 ### Remaining
 
-- Ashby adapter with recorded fixtures; the specification permits cutting it
-  if Phase 1 begins dragging
-- Idempotent ingestion
-- Content hashing and posting-version gates
-- Safe close and reopen reconciliation
+- A bounded Greenhouse/Lever fetch-to-ingestion runner or orchestration slice,
+  including run/endpoint-attempt lifecycle and conditional-validator reuse
 - Deterministic filters
 - Deep scoring
 - Frozen zero-to-three queue
@@ -57,15 +69,13 @@ multiple tasks, and one task may cover more than one closely related group.
 
 ## Likely next decision
 
-The next task definition will be selected only after checking the current
-repository against the remaining Phase 1 roadmap. The leading decision is
-whether to:
+The leading next decision is the exact boundary for connecting the merged
+Greenhouse and Lever adapters to Task 006 ingestion:
 
-- implement Ashby next and complete the planned three-adapter source layer; or
-- deliberately cut or defer Ashby and move into ingestion if Greenhouse and
-  Lever are sufficient to prove the vertical slice.
+- first implement the smallest one-endpoint fetch-to-ingestion runner; or
+- define a broader multi-endpoint pipeline-run lifecycle.
 
-This is a decision to make, not an approved Task 006 scope.
+This is a decision to make, not an approved Task 007 scope.
 
 ## Later phases
 
