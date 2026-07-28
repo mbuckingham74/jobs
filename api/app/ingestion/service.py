@@ -154,6 +154,30 @@ class IngestionService:
         if self._mutation_hook is not None:
             self._mutation_hook(stage, conn)
 
+    def lookup_replay_result(
+        self,
+        *,
+        run_id: int,
+        source_endpoint_id: int,
+    ) -> IngestionResult | None:
+        """Return Task 006's persisted replay projection without writing.
+
+        This is the narrow workflow seam for checking the durable
+        ``(run_id, source_endpoint_id)`` attempt key.  It intentionally reuses
+        the existing lookup and replay reconstruction and never accepts or
+        inspects a later ``FetchResult``.
+        """
+
+        if type(run_id) is not int or run_id <= 0:  # noqa: E721 - reject Boolean IDs
+            raise IngestionInputError("ingestion.invalid_run_id")
+        if type(source_endpoint_id) is not int or source_endpoint_id <= 0:  # noqa: E721
+            raise IngestionInputError("ingestion.invalid_source_endpoint_id")
+        endpoint_id = source_endpoint_id
+        try:
+            return self._initial_replay(run_id=run_id, endpoint_id=endpoint_id)
+        except SQLAlchemyError:
+            raise IngestionDatabaseError("ingestion.database_error") from None
+
     def _initial_replay(
         self,
         *,
