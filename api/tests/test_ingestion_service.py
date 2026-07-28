@@ -198,3 +198,35 @@ def test_transport_failure_enum_is_exact() -> None:
         "adapter.tls_error",
         "adapter.transport_error",
     }
+
+
+def test_public_replay_lookup_reuses_existing_read_only_projection(monkeypatch) -> None:
+    service = IngestionService(object())  # type: ignore[arg-type]
+    replay = _replay()
+    captured = {}
+
+    def initial_replay(**kwargs):
+        captured.update(kwargs)
+        return replay
+
+    monkeypatch.setattr(service, "_initial_replay", initial_replay)
+    assert service.lookup_replay_result(run_id=1, source_endpoint_id=2) is replay
+    assert captured == {"run_id": 1, "endpoint_id": 2}
+
+
+@pytest.mark.parametrize(
+    ("run_id", "endpoint_id", "code"),
+    [
+        (True, 2, "ingestion.invalid_run_id"),
+        (1, False, "ingestion.invalid_source_endpoint_id"),
+    ],
+)
+def test_public_replay_lookup_validates_only_its_key(
+    run_id: object, endpoint_id: object, code: str
+) -> None:
+    service = IngestionService(_UntouchableEngine())  # type: ignore[arg-type]
+    with pytest.raises(IngestionInputError, match=code):
+        service.lookup_replay_result(
+            run_id=run_id,  # type: ignore[arg-type]
+            source_endpoint_id=endpoint_id,  # type: ignore[arg-type]
+        )
