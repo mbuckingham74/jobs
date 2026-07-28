@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.ingestion import (
@@ -94,8 +94,10 @@ _TRANSPORT_CATEGORIES = {
 @dataclass(frozen=True, slots=True)
 class _Bound:
     run: dict[str, Any]
-    endpoint: EndpointSnapshot
-    conditional: ConditionalHeaders
+    endpoint_id: int
+    adapter_kind: str
+    endpoint: EndpointSnapshot | None
+    conditional: ConditionalHeaders | None
 
 
 def _utc(value: object) -> datetime:
@@ -271,8 +273,13 @@ def _source_endpoint(snapshot: EndpointSnapshot) -> SourceEndpoint:
     )
 
 
-def _attempt_projection(result: IngestionResult, adapter_kind: str) -> dict[str, object]:
-    counts = attempt_counts(result)
+def _attempt_projection(
+    result: IngestionResult,
+    *,
+    endpoint_id: int,
+    adapter_kind: str,
+) -> dict[str, object]:
+    counts = attempt_counts(result, endpoint_id=endpoint_id)
     counts["adapter_kind"] = adapter_kind
     return counts
 
@@ -366,8 +373,8 @@ def _result(
 ) -> OneEndpointRunnerResult:
     return OneEndpointRunnerResult(
         run_id=int(bound.run["id"]),
-        source_endpoint_id=bound.endpoint.id,
-        endpoint_kind=_kind(bound.endpoint),
+        source_endpoint_id=bound.endpoint_id,
+        endpoint_kind=bound.adapter_kind,
         run_status=status,
         finalized=finalized,
         ingestion_result=ingestion,
@@ -387,8 +394,18 @@ def _terminal_step(code: RunnerFailureCode, *, adapter_result: bool = False) -> 
     return "endpoint_snapshotted"
 
 
-def _finalize(
-    engine: Engine,
+def _locked_bound(bound: _Bound, run: dict[str, Any]) -> _Bound:
+    return _Bound(
+        run=run,
+        endpoint_id=bound.endpoint_id,
+        adapter_kind=bound.adapter_kind,
+        endpoint=bound.endpoint,
+        conditional=bound.conditional,
+    )
+
+
+def _finalize_locked(
+    conn: Connection,
     bound: _Bound,
     *,
     status: str,
@@ -399,63 +416,31 @@ def _finalize(
     ingestion: IngestionResult | None,
 ) -> OneEndpointRunnerResult:
     desired_error = {"code": failure.value} if failure is not None else None
-    try:
-        with engine.begin() as conn:
-            current = lock_run(conn, int(bound.run["id"]))
-            if current is None:
-                raise SQLAlchemyError()
-            _validate_owned_run(
-                current,
-                endpoint_id=bound.endpoint.id,
-                adapter_kind=_kind(bound.endpoint),
-                config_version=str(bound.run["config_version"]),
-            )
-            if current["status"] in _TERMINAL_STATUSES:
-                identical = (
-                    current["status"] == status
-                    and current["last_completed_step"] == step
-                    and current["counts"] == counts
-                    and current["error"] == desired_error
-                )
-                if identical:
-                    return _result(
-                        _Bound(current, bound.endpoint, bound.conditional),
-                        status=str(current["status"]),
-                        finalized=True,
-                        ingestion=ingestion,
-                        failure=failure,
-                    )
-                return _result(
-                    _Bound(current, bound.endpoint, bound.conditional),
-                    status=str(current["status"]),
-                    finalized=True,
-                    ingestion=ingestion,
-                    failure=RunnerFailureCode.FINALIZATION_CONFLICT,
-                )
-            finish_run(
-                conn,
-                run_id=int(bound.run["id"]),
-                status=status,
-                step=step,
-                counts=counts,
-                error=desired_error,
-                finished_at=finished_at,
-            )
-    except (RunnerTargetError, SQLAlchemyError):
-        return _result(
-            bound,
-            status="running",
-            finalized=False,
-            ingestion=ingestion,
-            failure=RunnerFailureCode.FINALIZATION_DATABASE_ERROR,
-        )
+    finish_run(
+        conn,
+        run_id=int(bound.run["id"]),
+        status=status,
+        step=step,
+        counts=counts,
+        error=desired_error,
+        finished_at=finished_at,
+    )
+    terminal_run = dict(
+        bound.run,
+        status=status,
+        last_completed_step=step,
+        counts=counts,
+        error=desired_error,
+        finished_at=finished_at,
+    )
+    terminal_bound = _locked_bound(bound, terminal_run)
     logger.info(
         "workflow.one_endpoint.finalized",
         extra={
             "event_name": "workflow.one_endpoint.finalized",
-            "run_id": int(bound.run["id"]),
-            "source_endpoint_id": bound.endpoint.id,
-            "adapter_slug": _kind(bound.endpoint),
+            "run_id": int(terminal_run["id"]),
+            "source_endpoint_id": terminal_bound.endpoint_id,
+            "adapter_slug": terminal_bound.adapter_kind,
             "run_status": status,
             "failure_code": failure.value if failure else None,
             "attempt_recorded": bool(counts["attempt_recorded"]),
@@ -465,7 +450,7 @@ def _finalize(
         },
     )
     return _result(
-        bound,
+        terminal_bound,
         status=status,
         finalized=True,
         ingestion=ingestion,
@@ -481,23 +466,23 @@ def _finish_time(clock: UTCClock, floor: datetime) -> tuple[datetime, bool]:
     return (value, True) if value >= floor else (floor, False)
 
 
-def _fail(
-    engine: Engine,
+def _finalize_failure_locked(
+    conn: Connection,
     bound: _Bound,
     clock: UTCClock,
     code: RunnerFailureCode,
     *,
     adapter_result: bool = False,
+    floor: datetime | None = None,
 ) -> OneEndpointRunnerResult:
-    started = _utc(bound.run["started_at"])
-    finished, valid = _finish_time(clock, started)
+    finished, valid = _finish_time(clock, floor or _utc(bound.run["started_at"]))
     selected = code if valid else RunnerFailureCode.CLOCK_INVALID
-    return _finalize(
-        engine,
+    return _finalize_locked(
+        conn,
         bound,
         status="failed",
         step=_terminal_step(selected, adapter_result=adapter_result),
-        counts=reserved_counts(bound.endpoint.id, _kind(bound.endpoint)),
+        counts=reserved_counts(bound.endpoint_id, bound.adapter_kind),
         failure=selected,
         finished_at=finished,
         ingestion=None,
@@ -520,7 +505,6 @@ def _validate_terminal_without_fetch(bound: _Bound) -> OneEndpointRunnerResult:
             RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND,
             RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE,
             RunnerFailureCode.DATABASE_ERROR,
-            RunnerFailureCode.INGESTION_RESULT_INVALID,
             RunnerFailureCode.FETCH_INCOMPLETE,
             RunnerFailureCode.FINALIZATION_DATABASE_ERROR,
             RunnerFailureCode.FINALIZATION_CONFLICT,
@@ -544,6 +528,7 @@ def _validate_terminal_without_fetch(bound: _Bound) -> OneEndpointRunnerResult:
         RunnerFailureCode.INGESTION_DATABASE_ERROR,
         RunnerFailureCode.INGESTION_INPUT_ERROR,
         RunnerFailureCode.INGESTION_TARGET_ERROR,
+        RunnerFailureCode.INGESTION_RESULT_INVALID,
     }
     parsed_code = RunnerFailureCode(code) if code in allowed else None
     expected_steps = (
@@ -561,8 +546,8 @@ def _validate_terminal_without_fetch(bound: _Bound) -> OneEndpointRunnerResult:
         or row.get("last_completed_step") not in expected_steps
         or _counts_shape(
             row.get("counts"),
-            endpoint_id=bound.endpoint.id,
-            adapter_kind=_kind(bound.endpoint),
+            endpoint_id=bound.endpoint_id,
+            adapter_kind=bound.adapter_kind,
         )
         != "reserved"
     ):
@@ -577,15 +562,22 @@ def _validate_terminal_without_fetch(bound: _Bound) -> OneEndpointRunnerResult:
 
 
 def _validate_attempt_relationship(bound: _Bound, replay: IngestionResult) -> None:
-    if replay.run_id != int(bound.run["id"]) or replay.source_endpoint_id != bound.endpoint.id:
+    if replay.run_id != int(bound.run["id"]) or replay.source_endpoint_id != bound.endpoint_id:
         raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
     if bound.run["status"] in _TERMINAL_STATUSES:
-        expected = _attempt_projection(replay, _kind(bound.endpoint))
+        expected = _attempt_projection(
+            replay,
+            endpoint_id=bound.endpoint_id,
+            adapter_kind=bound.adapter_kind,
+        )
         if bound.run["counts"] != expected:
             raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
         status, failure = _matrix(replay)
         persisted_failure = _closed_failure(_error_code(bound.run["error"]))
-        if persisted_failure is RunnerFailureCode.CLOCK_INVALID:
+        if persisted_failure in {
+            RunnerFailureCode.CLOCK_INVALID,
+            RunnerFailureCode.INGESTION_RESULT_INVALID,
+        }:
             status = "failed"
             failure = persisted_failure
         if (
@@ -594,6 +586,25 @@ def _validate_attempt_relationship(bound: _Bound, replay: IngestionResult) -> No
             or _error_code(bound.run["error"]) != (failure.value if failure is not None else None)
         ):
             raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+
+
+def _persisted_adapter_kind(
+    run: dict[str, Any],
+    *,
+    endpoint_id: int,
+    config_version: str,
+) -> str:
+    counts = run.get("counts")
+    adapter_kind = counts.get("adapter_kind") if type(counts) is dict else None  # noqa: E721
+    if type(adapter_kind) is not str or adapter_kind not in {*_KINDS, "malformed"}:  # noqa: E721
+        raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+    _validate_owned_run(
+        run,
+        endpoint_id=endpoint_id,
+        adapter_kind=adapter_kind,
+        config_version=config_version,
+    )
+    return adapter_kind
 
 
 def _bind(
@@ -606,16 +617,34 @@ def _bind(
 ) -> _Bound:
     try:
         with engine.begin() as conn:
-            run = None
             if run_id is not None:
                 run = lock_run(conn, run_id)
                 if run is None:
                     raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_NOT_FOUND)
-            endpoint = lock_endpoint(conn, endpoint_id)
-            if endpoint is None:
-                raise RunnerTargetError(RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND)
-            adapter_kind = _kind(endpoint)
-            if run_id is None:
+                adapter_kind = _persisted_adapter_kind(
+                    run,
+                    endpoint_id=endpoint_id,
+                    config_version=config_version,
+                )
+                fetch = matching_fetch_row(conn, run_id=run_id, endpoint_id=endpoint_id)
+                if run["status"] in _TERMINAL_STATUSES or fetch is not None:
+                    return _Bound(
+                        run=run,
+                        endpoint_id=endpoint_id,
+                        adapter_kind=adapter_kind,
+                        endpoint=None,
+                        conditional=None,
+                    )
+                endpoint = lock_endpoint(conn, endpoint_id)
+                if endpoint is None:
+                    raise RunnerTargetError(RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND)
+                if _kind(endpoint) != adapter_kind:
+                    raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+            else:
+                endpoint = lock_endpoint(conn, endpoint_id)
+                if endpoint is None:
+                    raise RunnerTargetError(RunnerFailureCode.SOURCE_ENDPOINT_NOT_FOUND)
+                adapter_kind = _kind(endpoint)
                 assert started_at is not None
                 run = create_run(
                     conn,
@@ -624,17 +653,15 @@ def _bind(
                     config_version=config_version,
                     started_at=started_at,
                 )
-            else:
-                assert run is not None
-                _validate_owned_run(
-                    run,
-                    endpoint_id=endpoint_id,
-                    adapter_kind=adapter_kind,
-                    config_version=config_version,
-                )
             rows = validator_rows(conn, endpoint_id=endpoint_id, excluded_run_id=int(run["id"]))
             conditional = reconstruct_validators(rows)
-            return _Bound(run=run, endpoint=endpoint, conditional=conditional)
+            return _Bound(
+                run=run,
+                endpoint_id=endpoint_id,
+                adapter_kind=adapter_kind,
+                endpoint=endpoint,
+                conditional=conditional,
+            )
     except RunnerTargetError:
         raise
     except SQLAlchemyError:
@@ -645,23 +672,9 @@ def _replay(engine: Engine, bound: _Bound) -> IngestionResult | None:
     try:
         return IngestionService(engine).lookup_replay_result(
             run_id=int(bound.run["id"]),
-            source_endpoint_id=bound.endpoint.id,
+            source_endpoint_id=bound.endpoint_id,
         )
     except (IngestionInputError, IngestionDatabaseError, SQLAlchemyError):
-        raise RunnerDatabaseError(
-            RunnerFailureCode.DATABASE_ERROR, run_id=int(bound.run["id"])
-        ) from None
-
-
-def _fetch_row(engine: Engine, bound: _Bound) -> dict[str, Any] | None:
-    try:
-        with engine.connect() as conn:
-            return matching_fetch_row(
-                conn,
-                run_id=int(bound.run["id"]),
-                endpoint_id=bound.endpoint.id,
-            )
-    except SQLAlchemyError:
         raise RunnerDatabaseError(
             RunnerFailureCode.DATABASE_ERROR, run_id=int(bound.run["id"])
         ) from None
@@ -699,9 +712,10 @@ def _validate_fetch_row(
 
 
 def _recheck(engine: Engine, bound: _Bound) -> RunnerFailureCode | None:
+    assert bound.endpoint is not None
     try:
         with engine.begin() as conn:
-            current = lock_endpoint(conn, bound.endpoint.id)
+            current = lock_endpoint(conn, bound.endpoint_id)
             if current is None:
                 return RunnerFailureCode.ENDPOINT_DELETED
             if current != bound.endpoint:
@@ -711,6 +725,204 @@ def _recheck(engine: Engine, bound: _Bound) -> RunnerFailureCode | None:
             RunnerFailureCode.DATABASE_ERROR, run_id=int(bound.run["id"])
         ) from None
     return None
+
+
+def _fresh_result_matches(
+    fresh: object,
+    persisted: IngestionResult,
+    bound: _Bound,
+) -> bool:
+    return (
+        isinstance(fresh, IngestionResult)
+        and fresh.run_id == int(bound.run["id"])
+        and fresh.source_endpoint_id == bound.endpoint_id
+        and fresh.source_fetch_id == persisted.source_fetch_id
+        and fresh.source_fetch_status == persisted.source_fetch_status
+        and fresh.http_status == persisted.http_status
+        and fresh.postings_seen == persisted.postings_seen
+        and fresh.source_fetch_postings_new == persisted.source_fetch_postings_new
+        and fresh.source_fetch_postings_changed == persisted.source_fetch_postings_changed
+        and fresh.reason_code == persisted.reason_code
+    )
+
+
+def _persisted_attempt(
+    engine: Engine,
+    bound: _Bound,
+    row: dict[str, Any],
+) -> tuple[IngestionResult, datetime]:
+    replay = _replay(engine, bound)
+    if replay is None:
+        raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+    finished_at = _validate_fetch_row(bound, replay, row)
+    return replay, finished_at
+
+
+def _coordinate(
+    engine: Engine,
+    bound: _Bound,
+    clock: UTCClock,
+    *,
+    local_failure: RunnerFailureCode | None = None,
+    adapter_result: bool = False,
+    finish_floor: datetime | None = None,
+    fetch_result: FetchResult | None = None,
+    transport: TransportFailureCode | None = None,
+    attempt_started: datetime | None = None,
+    attempt_finished: datetime | None = None,
+) -> OneEndpointRunnerResult:
+    """Serialize the durable winner while holding only the owned run lock."""
+
+    result_ingestion: IngestionResult | None = None
+    try:
+        with engine.begin() as conn:
+            current = lock_run(conn, int(bound.run["id"]))
+            if current is None:
+                raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+            _validate_owned_run(
+                current,
+                endpoint_id=bound.endpoint_id,
+                adapter_kind=bound.adapter_kind,
+                config_version=str(bound.run["config_version"]),
+            )
+            locked = _locked_bound(bound, current)
+            row = matching_fetch_row(
+                conn,
+                run_id=int(current["id"]),
+                endpoint_id=bound.endpoint_id,
+            )
+
+            if current["status"] in _TERMINAL_STATUSES:
+                if row is None:
+                    return _validate_terminal_without_fetch(locked)
+                replay, _ = _persisted_attempt(engine, locked, row)
+                _validate_attempt_relationship(locked, replay)
+                return _result(
+                    locked,
+                    status=str(current["status"]),
+                    finalized=True,
+                    ingestion=replay,
+                    failure=_closed_failure(_error_code(current["error"])),
+                )
+
+            if row is not None:
+                replay, persisted_finish = _persisted_attempt(engine, locked, row)
+                result_ingestion = replay
+                status, failure = _matrix(replay)
+                finish, valid = _finish_time(clock, persisted_finish)
+                if not valid:
+                    status = "failed"
+                    failure = RunnerFailureCode.CLOCK_INVALID
+                    finish = persisted_finish
+                return _finalize_locked(
+                    conn,
+                    locked,
+                    status=status,
+                    step="source_fetch_recorded",
+                    counts=_attempt_projection(
+                        replay,
+                        endpoint_id=locked.endpoint_id,
+                        adapter_kind=locked.adapter_kind,
+                    ),
+                    failure=failure,
+                    finished_at=finish,
+                    ingestion=replay,
+                )
+
+            if local_failure is not None:
+                return _finalize_failure_locked(
+                    conn,
+                    locked,
+                    clock,
+                    local_failure,
+                    adapter_result=adapter_result,
+                    floor=finish_floor,
+                )
+
+            if attempt_started is None or attempt_finished is None:
+                raise RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)
+
+            ingestion: object | None = None
+            ingestion_failure: RunnerFailureCode | None = None
+            service = IngestionService(engine)
+            try:
+                if transport is not None:
+                    ingestion = service.record_fetch_failure(
+                        run_id=int(current["id"]),
+                        source_endpoint_id=locked.endpoint_id,
+                        started_at=attempt_started,
+                        finished_at=attempt_finished,
+                        reason_code=transport,
+                    )
+                else:
+                    ingestion = service.ingest_fetch_result(
+                        run_id=int(current["id"]),
+                        source_endpoint_id=locked.endpoint_id,
+                        fetch_result=fetch_result,  # type: ignore[arg-type]
+                        started_at=attempt_started,
+                        finished_at=attempt_finished,
+                    )
+            except IngestionDatabaseError:
+                ingestion_failure = RunnerFailureCode.INGESTION_DATABASE_ERROR
+            except IngestionInputError:
+                ingestion_failure = RunnerFailureCode.INGESTION_INPUT_ERROR
+            except IngestionTargetError:
+                ingestion_failure = RunnerFailureCode.INGESTION_TARGET_ERROR
+
+            row = matching_fetch_row(
+                conn,
+                run_id=int(current["id"]),
+                endpoint_id=locked.endpoint_id,
+            )
+            if row is None:
+                return _finalize_failure_locked(
+                    conn,
+                    locked,
+                    clock,
+                    ingestion_failure or RunnerFailureCode.INGESTION_RESULT_INVALID,
+                    adapter_result=True,
+                    floor=attempt_finished,
+                )
+
+            replay, persisted_finish = _persisted_attempt(engine, locked, row)
+            status, failure = _matrix(replay)
+            fresh_valid = ingestion_failure is not None or _fresh_result_matches(
+                ingestion,
+                replay,
+                locked,
+            )
+            selected_ingestion = ingestion if ingestion_failure is None and fresh_valid else replay
+            result_ingestion = selected_ingestion  # type: ignore[assignment]
+            if not fresh_valid:
+                status = "failed"
+                failure = RunnerFailureCode.INGESTION_RESULT_INVALID
+            finish, valid = _finish_time(clock, persisted_finish)
+            if not valid:
+                status = "failed"
+                failure = RunnerFailureCode.CLOCK_INVALID
+                finish = persisted_finish
+            return _finalize_locked(
+                conn,
+                locked,
+                status=status,
+                step="source_fetch_recorded",
+                counts=_attempt_projection(
+                    replay,
+                    endpoint_id=locked.endpoint_id,
+                    adapter_kind=locked.adapter_kind,
+                ),
+                failure=failure,
+                finished_at=finish,
+                ingestion=selected_ingestion,  # type: ignore[arg-type]
+            )
+    except SQLAlchemyError:
+        return _result(
+            bound,
+            status="running",
+            finalized=False,
+            ingestion=result_ingestion,
+            failure=RunnerFailureCode.FINALIZATION_DATABASE_ERROR,
+        )
 
 
 async def run_one_endpoint(
@@ -741,51 +953,19 @@ async def run_one_endpoint(
         started_at=started_at,
     )
 
-    replay = _replay(engine, bound)
-    if replay is not None:
-        fetch_finished = _validate_fetch_row(bound, replay, _fetch_row(engine, bound))
-        _validate_attempt_relationship(bound, replay)
-        status, failure = _matrix(replay)
-        if bound.run["status"] in _TERMINAL_STATUSES:
-            failure = _closed_failure(_error_code(bound.run["error"]))
-            return _result(
-                bound,
-                status=str(bound.run["status"]),
-                finalized=True,
-                ingestion=replay,
-                failure=failure,
-            )
-        finish, valid = _finish_time(clock, fetch_finished)
-        if not valid:
-            return _finalize(
-                engine,
-                bound,
-                status="failed",
-                step="source_fetch_recorded",
-                counts=_attempt_projection(replay, _kind(bound.endpoint)),
-                failure=RunnerFailureCode.CLOCK_INVALID,
-                finished_at=fetch_finished,
-                ingestion=replay,
-            )
-        return _finalize(
-            engine,
-            bound,
-            status=status,
-            step="source_fetch_recorded",
-            counts=_attempt_projection(replay, _kind(bound.endpoint)),
-            failure=failure,
-            finished_at=finish,
-            ingestion=replay,
-        )
-
-    if bound.run["status"] in _TERMINAL_STATUSES:
-        return _validate_terminal_without_fetch(bound)
+    if bound.endpoint is None:
+        return _coordinate(engine, bound, clock)
 
     exclusion = _eligibility(bound.endpoint)
     if exclusion is not None:
-        return _fail(engine, bound, clock, exclusion)
+        return _coordinate(engine, bound, clock, local_failure=exclusion)
     if not _registry_valid(adapters):
-        return _fail(engine, bound, clock, RunnerFailureCode.ADAPTER_REGISTRY_DEFECT)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.ADAPTER_REGISTRY_DEFECT,
+        )
 
     factory = adapters.greenhouse if bound.endpoint.kind == "greenhouse" else adapters.lever
     try:
@@ -793,7 +973,12 @@ async def run_one_endpoint(
         if adapter.slug != bound.endpoint.kind or not callable(adapter.list_postings):
             raise TypeError
     except Exception:
-        return _fail(engine, bound, clock, RunnerFailureCode.ADAPTER_REGISTRY_DEFECT)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.ADAPTER_REGISTRY_DEFECT,
+        )
 
     run_started = _utc(bound.run["started_at"])
     try:
@@ -801,115 +986,89 @@ async def run_one_endpoint(
         if attempt_started < run_started:
             raise ValueError
     except ValueError:
-        return _fail(engine, bound, clock, RunnerFailureCode.CLOCK_INVALID)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.CLOCK_INVALID,
+        )
 
     fetch_result: FetchResult | None = None
     transport: TransportFailureCode | None = None
     unknown_transport = False
     try:
         fetch_result = await adapter.list_postings(
-            _source_endpoint(bound.endpoint), bound.conditional
+            _source_endpoint(bound.endpoint),
+            bound.conditional,  # type: ignore[arg-type]
         )
     except asyncio.CancelledError:
-        finish, _ = _finish_time(clock, run_started)
         try:
-            _finalize(
+            _coordinate(
                 engine,
                 bound,
-                status="failed",
-                step="endpoint_snapshotted",
-                counts=reserved_counts(bound.endpoint.id, _kind(bound.endpoint)),
-                failure=RunnerFailureCode.CANCELLED,
-                finished_at=finish,
-                ingestion=None,
+                clock,
+                local_failure=RunnerFailureCode.CANCELLED,
             )
         except Exception:
             pass
         raise
     except (GreenhouseEndpointError, LeverEndpointError):
-        return _fail(engine, bound, clock, RunnerFailureCode.ENDPOINT_POLICY)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.ENDPOINT_POLICY,
+        )
     except (GreenhouseTransportError, LeverTransportError) as exc:
         transport = _TRANSPORT_CATEGORIES.get(exc.category)
         unknown_transport = transport is None
     except Exception:
-        return _fail(engine, bound, clock, RunnerFailureCode.ADAPTER_DEFECT)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.ADAPTER_DEFECT,
+        )
 
     try:
         attempt_finished = _clock_now(clock)
         if attempt_finished < attempt_started:
             raise ValueError
     except ValueError:
-        return _fail(engine, bound, clock, RunnerFailureCode.CLOCK_INVALID, adapter_result=True)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=RunnerFailureCode.CLOCK_INVALID,
+            adapter_result=True,
+            finish_floor=attempt_started,
+        )
 
     changed = _recheck(engine, bound)
     if changed is not None:
-        return _fail(engine, bound, clock, changed, adapter_result=True)
+        return _coordinate(
+            engine,
+            bound,
+            clock,
+            local_failure=changed,
+            adapter_result=True,
+            finish_floor=attempt_finished,
+        )
     if unknown_transport:
-        return _fail(engine, bound, clock, RunnerFailureCode.ADAPTER_DEFECT)
-
-    try:
-        service = IngestionService(engine)
-        if transport is not None:
-            ingestion = service.record_fetch_failure(
-                run_id=int(bound.run["id"]),
-                source_endpoint_id=bound.endpoint.id,
-                started_at=attempt_started,
-                finished_at=attempt_finished,
-                reason_code=transport,
-            )
-        else:
-            ingestion = service.ingest_fetch_result(
-                run_id=int(bound.run["id"]),
-                source_endpoint_id=bound.endpoint.id,
-                fetch_result=fetch_result,  # type: ignore[arg-type]
-                started_at=attempt_started,
-                finished_at=attempt_finished,
-            )
-    except IngestionDatabaseError:
-        return _fail(
+        return _coordinate(
             engine,
             bound,
             clock,
-            RunnerFailureCode.INGESTION_DATABASE_ERROR,
+            local_failure=RunnerFailureCode.ADAPTER_DEFECT,
             adapter_result=True,
+            finish_floor=attempt_finished,
         )
-    except IngestionInputError:
-        return _fail(
-            engine,
-            bound,
-            clock,
-            RunnerFailureCode.INGESTION_INPUT_ERROR,
-            adapter_result=True,
-        )
-    except IngestionTargetError:
-        return _fail(
-            engine,
-            bound,
-            clock,
-            RunnerFailureCode.INGESTION_TARGET_ERROR,
-            adapter_result=True,
-        )
-
-    status, failure = _matrix(ingestion)
-    finish, valid = _finish_time(clock, attempt_finished)
-    if not valid:
-        return _finalize(
-            engine,
-            bound,
-            status="failed",
-            step="source_fetch_recorded",
-            counts=_attempt_projection(ingestion, _kind(bound.endpoint)),
-            failure=RunnerFailureCode.CLOCK_INVALID,
-            finished_at=attempt_finished,
-            ingestion=ingestion,
-        )
-    return _finalize(
+    return _coordinate(
         engine,
         bound,
-        status=status,
-        step="source_fetch_recorded",
-        counts=_attempt_projection(ingestion, _kind(bound.endpoint)),
-        failure=failure,
-        finished_at=finish,
-        ingestion=ingestion,
+        clock,
+        fetch_result=fetch_result,
+        transport=transport,
+        attempt_started=attempt_started,
+        attempt_finished=attempt_finished,
     )

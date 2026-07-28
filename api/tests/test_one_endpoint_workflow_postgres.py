@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import threading
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -982,6 +983,11 @@ def test_valid_terminal_without_fetch_replays_and_preserves_timestamps(
         )
     )
     before = _run_row(ingestion_engine, first.run_id)
+    with ingestion_engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM source_endpoint WHERE id=:id"),
+            {"id": endpoint_id},
+        )
     replay = asyncio.run(
         run_one_endpoint(
             engine=ingestion_engine,
@@ -996,6 +1002,8 @@ def test_valid_terminal_without_fetch_replays_and_preserves_timestamps(
         )
     )
     assert replay.failure_code is RunnerFailureCode.ENDPOINT_PAUSED
+    assert replay.source_endpoint_id == endpoint_id
+    assert replay.endpoint_kind == "greenhouse"
     assert replay.finalized is True
     assert _run_row(ingestion_engine, first.run_id) == before
 
@@ -1049,6 +1057,30 @@ def test_snapshot_fence_blocks_task006_after_endpoint_mutation(
             ).scalar_one()
             == 0
         )
+    if mutation == "change":
+        with ingestion_engine.begin() as conn:
+            conn.execute(
+                text("UPDATE source_endpoint SET kind='lever' WHERE id=:id"),
+                {"id": endpoint_id},
+            )
+    before = _run_row(ingestion_engine, result.run_id)
+    replay = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=result.run_id,
+            config_version="runner-v1",
+            adapters=AdapterRegistry(
+                greenhouse=lambda: pytest.fail("factory called on terminal replay"),
+                lever=lambda: pytest.fail("factory called on terminal replay"),
+            ),
+            clock=_Clock(),
+        )
+    )
+    assert replay.failure_code is expected
+    assert replay.source_endpoint_id == endpoint_id
+    assert replay.endpoint_kind == "greenhouse"
+    assert _run_row(ingestion_engine, result.run_id) == before
 
 
 def test_no_database_connection_is_checked_out_during_adapter_await(
@@ -1356,7 +1388,7 @@ def test_cancellation_finalizes_failed_and_propagates_original(
     assert fetch_count == 0
 
 
-def test_concurrent_same_key_may_fetch_twice_but_task006_writes_once(
+def test_concurrent_attempt_winner_overrides_later_adapter_defect(
     ingestion_engine,
 ) -> None:
     endpoint_id = _seed(ingestion_engine)
@@ -1378,59 +1410,69 @@ def test_concurrent_same_key_may_fetch_twice_but_task006_writes_once(
                 },
             ).scalar_one()
         )
-    barrier = threading.Barrier(2)
+    defect_started = threading.Event()
+    attempt_done = threading.Event()
     adapter_calls = []
-    factory_calls = []
 
-    class ConcurrentAdapter(_Adapter):
+    class AttemptAdapter(_Adapter):
         async def list_postings(self, endpoint, conditional):
             adapter_calls.append(1)
-            barrier.wait(timeout=10)
+            assert defect_started.wait(timeout=10)
             return self.outcome
 
-    def factory():
-        factory_calls.append(1)
-        return ConcurrentAdapter()
+    class DefectAdapter(_Adapter):
+        async def list_postings(self, endpoint, conditional):
+            adapter_calls.append(1)
+            defect_started.set()
+            assert attempt_done.wait(timeout=10)
+            raise RuntimeError("private-late-adapter-defect")
 
-    results = []
+    results = {}
     errors = []
 
-    def invoke(offset: int) -> None:
+    def invoke(name: str, adapter: _Adapter, offset: int) -> None:
         try:
-            results.append(
-                asyncio.run(
-                    run_one_endpoint(
-                        engine=ingestion_engine,
-                        source_endpoint_id=endpoint_id,
-                        run_id=run_id,
-                        config_version="runner-v1",
-                        adapters=AdapterRegistry(
-                            greenhouse=factory,
-                            lever=lambda: pytest.fail("wrong factory"),
-                        ),
-                        clock=_Clock(
-                            BASE + timedelta(seconds=1, milliseconds=offset),
-                            BASE + timedelta(seconds=2, milliseconds=offset),
-                            BASE + timedelta(seconds=3, milliseconds=offset),
-                        ),
-                    )
+            results[name] = asyncio.run(
+                run_one_endpoint(
+                    engine=ingestion_engine,
+                    source_endpoint_id=endpoint_id,
+                    run_id=run_id,
+                    config_version="runner-v1",
+                    adapters=_registry(adapter, []),
+                    clock=_Clock(
+                        BASE + timedelta(seconds=1, milliseconds=offset),
+                        BASE + timedelta(seconds=2, milliseconds=offset),
+                        BASE + timedelta(seconds=3, milliseconds=offset),
+                    ),
                 )
             )
         except Exception as exc:  # noqa: BLE001 - asserted below
             errors.append(exc)
+        finally:
+            if name == "attempt":
+                attempt_done.set()
 
-    threads = [threading.Thread(target=invoke, args=(offset,)) for offset in (0, 1)]
+    threads = [
+        threading.Thread(target=invoke, args=("attempt", AttemptAdapter(), 0)),
+        threading.Thread(target=invoke, args=("defect", DefectAdapter(), 1)),
+    ]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join(timeout=15)
         assert not thread.is_alive()
     assert errors == []
-    assert len(factory_calls) == 2
     assert len(adapter_calls) == 2
     assert len(results) == 2
-    assert all(result.run_status == "succeeded" for result in results)
-    assert sorted(result.ingestion_result.replayed for result in results) == [False, True]
+    assert all(result.run_status == "succeeded" for result in results.values())
+    assert all(result.failure_code is None for result in results.values())
+    assert all(result.ingestion_result is not None for result in results.values())
+    assert results["attempt"].ingestion_result.replayed is False
+    assert results["defect"].ingestion_result.replayed is True
+    assert (
+        results["attempt"].ingestion_result.source_fetch_id
+        == results["defect"].ingestion_result.source_fetch_id
+    )
     with ingestion_engine.connect() as conn:
         assert (
             conn.execute(
@@ -1438,6 +1480,199 @@ def test_concurrent_same_key_may_fetch_twice_but_task006_writes_once(
             ).scalar_one()
             == 1
         )
+    assert _run_row(ingestion_engine, run_id)["counts"]["attempt_recorded"] is True
+
+
+def test_concurrent_endpoint_change_winner_prevents_later_task006(
+    ingestion_engine,
+    monkeypatch,
+) -> None:
+    endpoint_id = _seed(ingestion_engine)
+    with ingestion_engine.begin() as conn:
+        run_id = int(
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO pipeline_run
+                        (run_kind,status,config_version,counts,started_at)
+                    VALUES
+                        ('manual','running','runner-v1',CAST(:counts AS jsonb),:started)
+                    RETURNING id
+                    """
+                ),
+                {
+                    "counts": json.dumps(reserved_counts(endpoint_id, "greenhouse")),
+                    "started": BASE,
+                },
+            ).scalar_one()
+        )
+
+    attempt_rechecked = threading.Event()
+    mutation_done = threading.Event()
+    original_recheck = workflow_service._recheck
+
+    def controlled_recheck(engine, bound):
+        result = original_recheck(engine, bound)
+        if threading.current_thread().name == "attempt-caller":
+            assert result is None
+            attempt_rechecked.set()
+            assert mutation_done.wait(timeout=10)
+        return result
+
+    monkeypatch.setattr(workflow_service, "_recheck", controlled_recheck)
+
+    def forbidden_task006(*args, **kwargs):
+        pytest.fail("Task 006 called after no-attempt winner")
+
+    monkeypatch.setattr(
+        workflow_service.IngestionService,
+        "ingest_fetch_result",
+        forbidden_task006,
+    )
+
+    class MutatingAdapter(_Adapter):
+        async def list_postings(self, endpoint, conditional):
+            assert attempt_rechecked.wait(timeout=10)
+            with ingestion_engine.begin() as conn:
+                conn.execute(
+                    text("UPDATE source_endpoint SET token='changed-token' WHERE id=:id"),
+                    {"id": endpoint_id},
+                )
+            return self.outcome
+
+    results = {}
+    errors = []
+
+    def invoke(name: str, adapter: _Adapter, offset: int) -> None:
+        try:
+            results[name] = asyncio.run(
+                run_one_endpoint(
+                    engine=ingestion_engine,
+                    source_endpoint_id=endpoint_id,
+                    run_id=run_id,
+                    config_version="runner-v1",
+                    adapters=_registry(adapter, []),
+                    clock=_Clock(
+                        BASE + timedelta(seconds=1, milliseconds=offset),
+                        BASE + timedelta(seconds=2, milliseconds=offset),
+                        BASE + timedelta(seconds=3, milliseconds=offset),
+                    ),
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - asserted below
+            errors.append(exc)
+        finally:
+            if name == "mutation":
+                mutation_done.set()
+
+    threads = [
+        threading.Thread(
+            name="attempt-caller",
+            target=invoke,
+            args=("attempt", _Adapter(), 0),
+        ),
+        threading.Thread(
+            name="mutation-caller",
+            target=invoke,
+            args=("mutation", MutatingAdapter(), 1),
+        ),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+        assert not thread.is_alive()
+
+    assert errors == []
+    assert len(results) == 2
+    assert all(result.run_status == "failed" for result in results.values())
+    assert all(
+        result.failure_code is RunnerFailureCode.ENDPOINT_CHANGED for result in results.values()
+    )
+    assert all(result.ingestion_result is None for result in results.values())
+    with ingestion_engine.connect() as conn:
+        assert (
+            conn.execute(
+                text("SELECT count(*) FROM source_fetch WHERE run_id=:id"),
+                {"id": run_id},
+            ).scalar_one()
+            == 0
+        )
+    before = _run_row(ingestion_engine, run_id)
+    assert before["counts"] == reserved_counts(endpoint_id, "greenhouse")
+    retry = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=run_id,
+            config_version="runner-v1",
+            adapters=AdapterRegistry(
+                greenhouse=lambda: pytest.fail("factory called on retry"),
+                lever=lambda: pytest.fail("factory called on retry"),
+            ),
+            clock=_Clock(),
+        )
+    )
+    assert retry.failure_code is RunnerFailureCode.ENDPOINT_CHANGED
+    assert _run_row(ingestion_engine, run_id) == before
+
+
+@pytest.mark.parametrize(
+    "defect",
+    ["run_id", "endpoint_id", "source_fetch_id", "persisted_fact"],
+)
+def test_fresh_task006_result_cannot_change_bound_attempt_projection(
+    ingestion_engine,
+    monkeypatch,
+    defect: str,
+) -> None:
+    endpoint_id = _seed(ingestion_engine)
+    original = workflow_service.IngestionService.ingest_fetch_result
+
+    def defective_result(service, **kwargs):
+        result = original(service, **kwargs)
+        if defect == "run_id":
+            return replace(result, run_id=result.run_id + 1000)
+        if defect == "endpoint_id":
+            return replace(result, source_endpoint_id=result.source_endpoint_id + 1000)
+        if defect == "source_fetch_id":
+            return replace(result, source_fetch_id=result.source_fetch_id + 1000)
+        return replace(result, postings_seen=result.postings_seen + 1)
+
+    monkeypatch.setattr(
+        workflow_service.IngestionService,
+        "ingest_fetch_result",
+        defective_result,
+    )
+    result = asyncio.run(
+        run_one_endpoint(
+            engine=ingestion_engine,
+            source_endpoint_id=endpoint_id,
+            run_id=None,
+            config_version="runner-v1",
+            adapters=_registry(_Adapter(), []),
+            clock=_clock(),
+        )
+    )
+    assert result.run_status == "failed"
+    assert result.failure_code is RunnerFailureCode.INGESTION_RESULT_INVALID
+    assert result.ingestion_result is not None
+    assert result.ingestion_result.replayed is True
+    with ingestion_engine.connect() as conn:
+        fetch = dict(
+            conn.execute(
+                text("SELECT * FROM source_fetch WHERE run_id=:id"),
+                {"id": result.run_id},
+            )
+            .mappings()
+            .one()
+        )
+    run = _run_row(ingestion_engine, result.run_id)
+    assert run["counts"]["attempt_recorded"] is True
+    assert run["counts"]["endpoint_id"] == endpoint_id
+    assert run["counts"]["source_fetch_id"] == fetch["id"]
+    assert run["counts"]["postings_seen"] == fetch["postings_seen"]
+    assert run["error"] == {"code": RunnerFailureCode.INGESTION_RESULT_INVALID.value}
 
 
 def test_two_endpoints_racing_one_owned_run_allow_only_bound_endpoint(

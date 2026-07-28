@@ -89,9 +89,13 @@ unique `(run_id, endpoint_id)` fetch key remains attempt truth. Add one
 read-only Task 006 method returning its existing `_replay_result` projection
 or `None`, changing no rules or writes.
 
-For a positive `run_id`, lock the row `FOR UPDATE` and resume it only when its
-counts are an exact recognized Task 007 projection with `schema_version=1`.
-The persisted endpoint ID and adapter kind, `run_kind='manual'`, and exact
+For a positive `run_id`, take a write-intent row lock and resume it only when
+its counts are an exact recognized Task 007 projection with `schema_version=1`.
+Use PostgreSQL `FOR NO KEY UPDATE`: it serializes every Task 007 coordinator
+while remaining compatible with the `KEY SHARE` lock required by Task 006's
+separate `source_fetch` foreign-key insert.
+Load and validate that run before consulting the live endpoint. The persisted
+endpoint ID and adapter kind, `run_kind='manual'`, and exact
 `config_version` must match the invocation. Reject through
 `RunnerTargetError(RunnerFailureCode.PIPELINE_RUN_INCOMPATIBLE)` without
 mutation when counts are `{}`, null-like, malformed, contain extra/missing
@@ -107,18 +111,27 @@ For a compatible resumed run:
   otherwise raise `runner.pipeline_run_incompatible`; and
 - terminal with an attempt: return replay and preserve terminal fields.
 
+A terminal replay derives its endpoint ID and adapter kind from the persisted
+binding. It does not require, lock, or validate the live `source_endpoint`,
+construct an adapter, call the clock, or write. Only a running run without a
+persisted attempt loads the current endpoint and reconstructs validators.
+
 A valid terminal result without an attempt has reserved counts, `status='failed'`,
 one exact table-listed run error whose `source_fetch` column is `No` or `No new
 row`, the terminal step dictated below, a non-null aware-UTC finish not before
 its aware-UTC start, and no Task 006 replay row. Any deviation is incompatible.
 
-A retry after attempt commit performs no network I/O. Finalization locks the
-run and compare-and-sets it: an identical terminal projection is replay;
-another is `runner.finalization_conflict`.
+A retry after attempt commit performs no network I/O. Every post-adapter or
+local no-attempt outcome enters one coordination transaction that locks the
+owned run, revalidates its binding, checks the matching attempt and terminal
+state, and selects the durable winner before another write. Code already
+holding that lock finalizes on the same connection.
 
 Concurrent eligible same-key callers may each call `list_postings()` once
-before Task 006 selects one writer and one replay; both finalize from the
-winner. Cross-process network at-most-once needs a durable claim or a database
+before outcome coordination. The first coordinated durable attempt or valid
+no-attempt failure wins; later callers return the persisted winner and ignore
+their later local outcome. A no-attempt winner prevents a later Task 006 call.
+Cross-process network at-most-once still needs a durable claim or a database
 resource held during I/O, so the current schema cannot provide it.
 
 Every `run_id=None` call is a new manual run. Without an external trigger key,
@@ -232,11 +245,23 @@ creates no `source_fetch`.
 Use four bounded phases:
 
 1. Short transaction: atomically create/reserve or verify the owned run,
-   snapshot endpoint, check replay, and reconstruct validators.
+   checking terminal/attempt state from the persisted binding before requiring
+   the live endpoint; snapshot and validators are needed only for a running
+   run without an attempt.
 2. With no database resource open: clock, await adapter, clock again.
-3. Short transaction: revalidate endpoint; then Task 006 owns its separate
-   atomic attempt transaction with those timestamps.
-4. Short transaction: lock and finalize the run.
+3. Short transaction: revalidate all seven endpoint columns, then release its
+   endpoint lock.
+4. Coordination transaction: lock only the owned `pipeline_run`, revalidate
+   ownership, check the matching `source_fetch` and terminal state, then
+   resolve the durable winner. A running attempt candidate invokes Task 006
+   while retaining only this run lock; Task 006 keeps its separate atomic
+   transaction and remains the sole `source_fetch` writer. Re-read and
+   reconstruct persisted attempt facts, then finalize with the already-locked
+   connection.
+
+No database connection, transaction, lock, result object, or session spans
+adapter I/O. Do not hold an endpoint lock across Task 006. Preserve the narrow
+race after the seven-column endpoint recheck.
 
 Capture run start before new-row insertion and run finish for finalization;
 resumption/replay preserves both. Attempt times exist only for a network call.
@@ -247,8 +272,10 @@ closed input error; after binding it finalizes `runner.clock_invalid`. Neither
 reaches Task 006.
 
 Phase-one failure rolls back creation and performs no I/O. A Task 006
-database/target/input failure finalizes failed when possible. Phase-four
-failure rolls back only finalization and returns `finalized=False`,
+database/target/input failure finalizes failed when no attempt committed. If
+Task 006 committed but finalization fails, only coordination/finalization
+rolls back; the run remains running and retry discovers the committed attempt.
+A coordination finalization failure returns `finalized=False`,
 `run_status='running'`, `runner.finalization_database_error`, and the retryable
 run ID.
 
@@ -318,7 +345,7 @@ error” is persisted and returned; “Return-only” preserves the prior run er
 | `runner.ingestion_database_error` | Run error | Task 006 database exception | No new row |
 | `runner.ingestion_input_error` | Run error | Task 006 input exception | No new row |
 | `runner.ingestion_target_error` | Run error | Task 006 target exception | No new row |
-| `runner.ingestion_result_invalid` | Run error | Unknown non-null Task 006 reason code | Yes |
+| `runner.ingestion_result_invalid` | Run error | Invalid Task 006 result or unknown non-null reason code | Yes, or no new row from a defective result |
 | `runner.fetch_incomplete` | Run error | Incomplete result without a narrower reason | Yes |
 | `runner.cancelled` | Run error, then `CancelledError` | Cancellation before attempt persistence | No |
 | `runner.finalization_database_error` | Return-only | Finalization transaction fails | May |
@@ -353,10 +380,13 @@ An attempt form has `attempt_recorded=true` and copies every attempt fact under
 the rules below. A valid terminal result without a `source_fetch` retains the
 reserved form. Any other shape is unrecognized and cannot be resumed.
 
-After Task 006, use only its persisted-fact fields:
+After Task 006, require the returned run ID and endpoint ID to match the owned
+binding, require the matching persisted attempt, and use only persisted-fact fields:
 `source_fetch_id`, `http_status`, `postings_seen`,
 `source_fetch_postings_new`, and `source_fetch_postings_changed`. Never
-recompute from posting tables.
+recompute from posting tables. Build counts `endpoint_id` from the persisted
+Task 007 binding, never an unverified returned value. A mismatched returned
+result is `runner.ingestion_result_invalid` and cannot redirect the run.
 
 Finalization replay writes the same projection. Do not store invocation-local
 `replayed`, close/reopen/version call effects, endpoint transitions, or alert
@@ -410,7 +440,10 @@ Using invented endpoints and injected protocol-compatible adapters:
 - no retained database resource while a blocking fake awaits;
 - atomic creation/reservation; rejection without mutation of unbound, `{}`-counts, foreign-version, malformed, mismatched, and
   unrelated manual runs; strict terminal-without-fetch validation;
-- retry after attempt/finalization failure, concurrent same key, new manual runs, Task 006 replay preservation, terminal timestamp preservation; and
+- retry after attempt/finalization failure, both concurrent winner orders, new
+  manual runs, Task 006 replay preservation, endpoint-independent terminal
+  replay, terminal timestamp preservation, and fresh-result relationship
+  validation; and
 - exact sentinel redaction for every prohibited field.
 
 Use `httpx.MockTransport` only at real adapter boundaries and smaller fakes
@@ -427,7 +460,11 @@ Use disposable PostgreSQL 16 + pgvector through the guarded loopback
 - endpoint deletion/change and zero database resources during adapter await;
 - exact factory, `list_postings()`, and network-I/O cardinality across eligibility, replay, policy, registry validation, and concurrency;
 - attempt/finalization replay without double count;
-- concurrent same-key winner/replay/terminal consistency, one winner when two endpoints bind one run, and distinct new manual runs;
+- deterministic concurrent attempt-first and no-attempt-first winners,
+  including a local defect and cancellation or endpoint mutation; one winner
+  when two endpoints bind one run; and distinct new manual runs;
+- terminal replay after endpoint deletion or kind change, with no factory,
+  adapter, clock, endpoint dependency, or write;
 - rollback/closed behavior for failure in binding, validators, recheck, Task 006, and finalization; and
 - privacy-safe stored errors/logs with unique sentinels.
 
@@ -443,7 +480,7 @@ creates invented prerequisites and cleans up only its own rows.
 | 3 | Persist policy, unsupported-kind, registry-defect, and adapter-defect failures on `pipeline_run` only; create no `source_fetch`. |
 | 4 | Use the exact terminal-status matrix. |
 | 5 | Attempt one best-effort failed finalization, then propagate the original `asyncio.CancelledError`. |
-| 6 | Concurrent callers may duplicate the network read; Task 006 remains first-write-wins. |
+| 6 | Concurrent callers may duplicate the network read; one post-adapter run-lock boundary serializes every durable outcome. A committed Task 006 attempt or a valid no-attempt failure may win, and later callers return that persisted winner. |
 | 7 | Use the snapshot/recheck fence and accept the narrow post-recheck race without a migration or Task 006 write-interface change. |
 
 ## Out of scope
@@ -468,9 +505,15 @@ creates invented prerequisites and cleans up only its own rows.
 - [ ] Eligible supported non-replay calls one selected adapter's `list_postings()` once; replay and every listed exclusion call none.
 - [ ] Cancellation/defects never masquerade as transport failures.
 - [ ] No transaction, lock, connection, or session is held during network I/O.
+- [ ] Every bound outcome is serialized by the owned run lock; a no-attempt
+      winner prevents later Task 006, while an attempt winner overrides later
+      local failures.
 - [ ] Task 006 remains the sole attempt writer with unchanged semantics.
 - [ ] Every matrix row has exact fields/error/counts/result and resumability.
-- [ ] Counts use persisted attempt facts, never double count, and remain safe.
+- [ ] Terminal replay is independent of the live endpoint and performs no
+      adapter, clock, or write work.
+- [ ] Counts use the persisted binding and persisted attempt facts, never
+      double count, and cannot point at another run or endpoint.
 - [ ] Unit/PostgreSQL tests cover every case without live traffic.
 - [ ] Ruff, focused tests, PostgreSQL tests, and the full suite pass.
 - [ ] No migration, route, CLI, scheduler, notification, additional adapter, filter, model, queue, deployment, or infrastructure behavior is added.

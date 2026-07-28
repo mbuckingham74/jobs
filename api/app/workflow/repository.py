@@ -118,10 +118,10 @@ def reserved_counts(endpoint_id: int, adapter_kind: str) -> dict[str, object]:
     }
 
 
-def attempt_counts(result: Any) -> dict[str, object]:
+def attempt_counts(result: Any, *, endpoint_id: int) -> dict[str, object]:
     return {
         "schema_version": 1,
-        "endpoint_id": result.source_endpoint_id,
+        "endpoint_id": endpoint_id,
         "adapter_kind": None,
         "attempt_recorded": True,
         "source_fetch_id": result.source_fetch_id,
@@ -146,8 +146,13 @@ def lock_endpoint(conn: Connection, endpoint_id: int) -> EndpointSnapshot | None
 
 
 def lock_run(conn: Connection, run_id: int) -> dict[str, Any] | None:
+    # PostgreSQL FOR NO KEY UPDATE still serializes every runner coordinator,
+    # while remaining compatible with the KEY SHARE lock taken when Task 006
+    # inserts a source_fetch through its pipeline_run foreign key.
     row = (
-        conn.execute(select(pipeline_run).where(pipeline_run.c.id == run_id).with_for_update())
+        conn.execute(
+            select(pipeline_run).where(pipeline_run.c.id == run_id).with_for_update(key_share=True)
+        )
         .mappings()
         .first()
     )
