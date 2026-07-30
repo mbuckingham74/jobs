@@ -12,8 +12,9 @@
 Task 008 is one deterministic eligibility evaluation over one persisted posting and its authoritative current
 version. It runs before research, embeddings, semantic deduplication, model calls, and deep scoring.
 
-It evaluates one posting, accumulates all reasons, and performs no network, model, embedding, scoring, workflow, or
-batch work. Pure rule evaluation neither reads nor writes a database.
+It evaluates one posting, accumulates all reasons, and performs no network, model, embedding, triage/deep-scoring,
+workflow, or batch work. Pure rule evaluation neither reads nor writes a database. Persistence projects every
+rejected completed evaluation into the existing `score` table solely for the required filter-stage audit record.
 
 Candidate-specific state eligibility, including “excluding Alaska,” remains a deep-scoring concern. Adding it later
 requires a different stage or new approved policy boundary.
@@ -38,6 +39,9 @@ The immutable evaluation identity is:
   timestamp and row order never select content.
 - Immutable inputs are `posting_version.title`, `locations`, and `description_md`; never read `raw_payload`,
   embeddings, or incidental fields.
+- The selected `posting_version.observed_in_run_id` is immutable provenance for the required filter-stage `score`
+  projection. It is not a rule input and therefore is not added to canonical input JSON; it is selected and
+  revalidated with the authoritative version before persistence.
 - Mutable posting inputs are `source_published_at`, `first_seen_at`, `closed_at`, and the current pointer; mutable
   content projections are never filter inputs.
 - Mutable company input is exactly `company.blocked`.
@@ -619,6 +623,13 @@ precedence is `prior_skipped`, `prior_applied`, `current_version_expired`.
 No `application` table exists or contributes evidence. Adding it later requires
 a new policy version.
 
+A filter-stage `score` row by itself is not an action fact. The
+`already_actioned` rule reads only `digest_item` rows and follows each row's
+existing `digest_item.score_id` relationship to validate posting-version
+provenance. Creating a filter-stage score without a linked digest item
+therefore cannot reject a later evaluation; no query may treat the existence
+of any unlinked `score` row, regardless of stage, as a prior user action.
+
 ### 8. Closed postings
 
 Non-null `posting.closed_at` raises `PostingClosedError` with
@@ -633,7 +644,7 @@ Staleness rejects only when the selected timestamp is strictly earlier than
 later than `evaluation_as_of` raises `FilterPersistedInputError` with
 `filter.persisted_input_invalid` and persists nothing.
 
-### 10. Dedicated persistence table
+### 10. Dedicated evaluation and filter-score persistence
 
 Add only migration `revision = "0004_hard_filter_evaluation"` with
 `down_revision = "0003_posting_current_version"`. It creates only
@@ -678,9 +689,73 @@ The unique `input_hash` and
 `hard_filter_evaluation_current_lookup_idx` on
 `(posting_id, posting_version_id, policy_version, evaluation_as_of DESC)` are
 the only required indexes. Task 008 exposes no update/delete operation and
-never mutates an evaluation; add no append-only trigger. Concurrent identical
-inserts use the unique identity: the loser rolls back, validates the winner,
-and returns `replayed=True`. Do not write filter-stage `score` or dual-write.
+never mutates an evaluation; add no append-only trigger.
+
+The existing `score` schema already provides every field and uniqueness rule
+needed for the filter-stage projection. No `score` schema change is part of
+migration `0004`. For each completed evaluation with a non-empty
+`rejection_reasons`, insert exactly one `score` row with:
+
+| Existing `score` column | Required filter-stage value |
+| --- | --- |
+| `run_id` | the selected `posting_version.observed_in_run_id`, revalidated as a valid existing `pipeline_run.id` |
+| `posting_version_id` | the evaluation's authoritative `posting_version_id` |
+| `stage` | literal `filter` |
+| `ruleset_version` | the evaluation's exact `policy_version`, which is exactly `phase1-hard-filters-v1` |
+| `input_hash` | the evaluation's exact `input_hash` |
+| `reject_reasons` | one JSON array containing every matching rejection reason in canonical `HardFilterReason` order |
+| `scored_at` | the evaluation's normalized `evaluation_as_of` |
+
+All nullable model, prompt, résumé, candidate-profile, research, rubric,
+numeric score, verdict, rationale, gap, hook, flag, and other deep/triage
+columns remain null. In particular, the projection does not manufacture a
+model verdict or a second result vocabulary.
+
+The relationship is exact and deterministic. For one
+`hard_filter_evaluation` row `H` with non-empty `H.rejection_reasons`, its
+rejected result is the validated canonical output stored by `H`, and its sole
+filter-stage score projection is the row `S` for which:
+
+```text
+S.posting_version_id = H.posting_version_id
+S.stage = 'filter'
+S.input_hash = H.input_hash
+S.ruleset_version = H.policy_version
+S.reject_reasons = H.rejection_reasons
+S.scored_at = H.evaluation_as_of
+S.run_id = selected posting_version.observed_in_run_id
+```
+
+`hard_filter_evaluation_input_hash_key` makes `H` unique, and the existing
+`score_posting_version_id_stage_input_hash_key` makes `S` unique. These keys
+provide deterministic association and deduplication without a new column,
+foreign key, constraint, or index. A completed eligible evaluation has empty
+reasons and must have no score row at the corresponding
+`(posting_version_id, 'filter', input_hash)` key.
+
+For a new rejected identity, insert `H` and `S` in the same database
+transaction after all stale-input checks. Neither row may commit unless both
+inserts succeed. Any exception, cancellation, constraint failure, or injected
+failure between the inserts rolls back both. For a new eligible identity,
+insert only `H` in that transaction.
+
+Replay validates the complete immutable evaluation as already required and
+also validates the paired projection. A rejected replay requires exactly the
+one `S` above and verifies every listed field and the null-only unrelated
+columns; an eligible replay verifies that the corresponding score key is
+absent. A missing score for a rejected evaluation, a score for an eligible
+evaluation, or any mismatched, extra, malformed, or non-null unrelated score
+value raises `FilterEvaluationConflictError` with
+`filter.evaluation_conflict`; it is never repaired, replaced, or silently
+accepted.
+
+Concurrent identical calls converge on one `H` and, when rejected, one `S`.
+The posting-row lock normally serializes the final persistence check. If a
+unique-key race is nevertheless observed, the losing attempt rolls back its
+whole transaction, starts a fresh transaction, reacquires the complete lock
+sequence, validates the winner's complete `H`/`S` pair (or eligible `H` plus
+score absence), and returns `replayed=True`. It must not retry either insert in
+isolation or create a duplicate projection.
 
 ### 11. Database-enforced locking
 
@@ -695,7 +770,8 @@ persistence/replay phase; acquire locks and act in this exact order:
 6. lock its selected `posting_version` row `FOR SHARE`;
 7. lock the linked `company` row `FOR SHARE`;
 8. recheck every canonical mutable and immutable identity input;
-9. insert or validate/replay the evaluation; and
+9. insert or validate/replay the evaluation and its required filter-stage
+   score projection as one atomic persistence unit; and
 10. commit and release every lock.
 
 The table lock fences digest inserts, updates, and deletes; score locks fence
@@ -704,8 +780,10 @@ locks while waiting for a digest writer's normal table-level lock.
 
 Recheck that no qualifying digest item was inserted or removed; no evaluated
 state or joined `score_id` fact changed; every linked score still exists with
-its evaluated version; posting IDs still agree through the join; and pointer,
-posting/company value, policy, and every evaluated input remain identical.
+its evaluated version; posting IDs still agree through the join; the selected
+posting version's `observed_in_run_id` still names the required score
+provenance; and pointer, posting/company value, policy, and every evaluated
+input remain identical.
 Any mismatch raises `StaleFilterInputError` with `filter.input_stale` and
 persists nothing. The coarse lock is appropriate for this short, single-user,
 single-posting phase and may change only through separate review backed by
@@ -735,9 +813,11 @@ version.
 
 ## Relationship to later scoring
 
-Later scoring requires current posting/version, policy version/hash, evaluation instant, mutable-state hash, and
-`eligible=True`. A stale or missing evaluation requests a new one; it is not rejection. Scoring cannot reinterpret
-unknowns.
+Later triage/deep scoring requires current posting/version, policy version/hash, evaluation instant,
+mutable-state hash, and `eligible=True`. A stale or missing evaluation requests
+a new one; it is not rejection. Later scoring cannot reinterpret unknowns.
+The required filter-stage `score` projection is rejection audit persistence,
+not authorization to run model scoring or to advance a rejected posting.
 
 Deep scoring owns individual-state eligibility and candidate-specific geography. Task 008 builds no orchestrator,
 model score, verdict, similarity, research, ranking, queue membership, or digest selection.
@@ -773,6 +853,8 @@ text, or stack traces.
 Add only migration `0004_hard_filter_evaluation`, `api/app/filters/`, focused tests, and migration-chain test
 updates. Use pure evaluation, typed policy, SQLAlchemy Core, parameterized SQL, explicit transactions, deterministic
 cleanup on every exit, declared columns only, no settings-owned criteria, and never dispose the caller's Engine.
+The persistence repository writes the existing `score` columns specified
+above; it adds no scoring service or score-table migration.
 
 Deterministic tests cover every rule/evidence triple, canonical/hash/error/privacy boundary, every geography matrix
 branch and adversarial example above, and these discipline cases:
@@ -875,8 +957,21 @@ Clearance tests include:
 Engine-ownership tests call the service, prove its connection/result resources closed, reuse the same Engine
 successfully, and prove `engine.dispose()` was not called. Patch network/model entry points to fail. PostgreSQL 16 +
 pgvector tests cover migration cycles, identity/replay, digest/score relations, structured/body geography conflicts,
-the lock sequence, stale rollback, cleanup paths, currentness, and privacy. Use guarded `TEST_DATABASE_URL`, never
-SQLite, and only invented rows.
+the lock sequence, stale rollback, cleanup paths, currentness, and privacy. They explicitly prove:
+
+- one rejected evaluation writes one filter-stage `score`;
+- that score's `reject_reasons` contains every matched reason in canonical reason order;
+- that score stores the exact `phase1-hard-filters-v1` ruleset version;
+- an eligible evaluation writes no filter-stage rejection score;
+- an injected transaction failure between paired writes leaves neither the evaluation nor score row persisted;
+- replay validates the existing pair and creates no duplicate score;
+- concurrent identical rejected calls converge on one canonical evaluation and one score projection;
+- a missing score, a corrupt or mismatched paired score, and an unexpected score for an eligible evaluation are
+  detected as `filter.evaluation_conflict`; and
+- an unlinked filter-stage score does not trigger `already_actioned`, while the existing digest-linked action
+  semantics remain unchanged.
+
+Use guarded `TEST_DATABASE_URL`, never SQLite, and only invented rows.
 
 ## Out of scope
 
@@ -928,11 +1023,22 @@ geocoding, and legal interpretation remain out of scope.
       suffixes retain exact adjacency with no unspecified filler; no-requirement, preference, and obtainability
       templates own their spans and alone pass with `active_clearance_not_required`, while independent conflicting
       evidence is `clearance_ambiguous`.
-- [ ] Already-actioned evaluation uses the current schema and follows every digest state/version rule above.
+- [ ] Already-actioned evaluation uses the current schema and follows every digest state/version rule above; an
+      unlinked filter-stage score is not an action and cannot trigger `already_actioned`.
 - [ ] The absent future application branch causes no rejection, unknown, error, lock, FK, or migration.
-- [ ] `0004_hard_filter_evaluation` creates only the approved table, constraints, and indexes with a reversible downgrade.
-- [ ] No filter-stage `score` write, dual write, update/delete repository operation, append-only trigger, or policy table exists.
-- [ ] The exact table/row lock sequence fences digest and linked score-version mutation; stale races persist nothing.
+- [ ] `0004_hard_filter_evaluation` creates only the approved evaluation table, constraints, and indexes with a
+      reversible downgrade; the existing score schema and unique key require no migration change.
+- [ ] Every rejected completed evaluation atomically writes exactly one filter-stage score with the authoritative
+      posting version and observed-run provenance, `stage = 'filter'`, every canonical ordered rejection reason,
+      the exact ruleset version, the evaluation input hash, and evaluation instant; eligible evaluations write no
+      rejection score.
+- [ ] Evaluation/score replay validates the exact pair and creates no duplicate; concurrent identical calls converge
+      on one canonical evaluation and one required projection, and missing, mismatched, corrupt, or unexpected paired
+      persistence raises `filter.evaluation_conflict` without repair.
+- [ ] A paired-write failure commits neither row, and no update/delete repository operation, append-only trigger, or
+      policy table exists.
+- [ ] The exact table/row lock sequence fences digest and linked score-version mutation plus atomic evaluation/score
+      persistence; stale races persist nothing.
 - [ ] Task 008 closes every owned resource on every exit, never disposes the caller's Engine, and leaves it reusable.
 - [ ] Canonical input/output and mutable-state hashes reproduce exactly.
 - [ ] No extra filter, arbitrary evidence, sensitive outcome, or unsafe log value exists.
