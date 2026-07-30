@@ -222,7 +222,10 @@ exclusion template owns its matched token span: an inclusion sequence contained 
 not independently match, while a separate non-overlapping inclusion occurrence remains independent evidence. For
 remote arrangement, an approved denial template likewise owns its matched token span: a positive remote sequence
 contained wholly inside that span does not independently match, while separate structured positive evidence or a
-separate non-overlapping positive text occurrence remains independent evidence.
+separate non-overlapping positive text occurrence remains independent evidence. For clearance, an approved
+no-requirement, preference, or obtainability template owns its matched span: a recognized clearance phrase contained
+inside that span does not independently match as requirement evidence, while separate non-overlapping evidence
+remains independent.
 
 Every phrase, abbreviation, precedence, matched-span ownership rule, evidence mapping, and declared input field
 lives in the manifest. Content patterns may declare only immutable title, description, and locations, and every
@@ -246,7 +249,7 @@ persisted state with no evaluation row.
 | Discipline | no title-only or compound exclusion | approved title-only or compound exclusion | description-unavailable compound branch contributes nothing; the rule still completes P or R | I for an invalid required field |
 | Remote reality | remote permitted | attendance required | U | U |
 | Geography | US not excluded | remote scope excludes US | U | U |
-| Clearance | explicit no requirement | active clearance required | U: not stated or ambiguous | U |
+| Clearance | no-requirement, preference, or obtainability template | active clearance required | U: not stated or ambiguous | U |
 | Staleness | age at most 45 days | age over 45 days | fallback to `first_seen_at` | I if both unusable or selected time is future |
 | Already actioned | no qualifying digest fact | qualifying digest fact | P when no digest fact exists | I for corrupt existing relationships |
 | Blocked company | false | true | I; non-null column | I |
@@ -407,12 +410,14 @@ A weekly-attendance template requires all five conditions in one normalized sent
 3. `per week`, `a week`, `each week`, or `weekly` within four tokens of the `day`/`days` token;
 4. `office`, `in office`, `in the office`, `onsite`, or `on site` within eight tokens, in either direction, of the
    `day`/`days` token; and
-5. at least one of `required`, `must`, `expected`, `work`, `working`, `report`, or `attendance` in that same sentence.
+5. in that same sentence, at least one obligation token from the closed set `required`, `must`, `expected`, or
+   `attendance`, or one exact presence-linking sequence `report to the office`, `report onsite`, or `report on site`.
 
 If any condition is absent, the weekly template emits no `attendance_required`; another approved mandatory template
 may still decide the rule. Bare `office`, `workplace`, `location`, `onsite`, `on site`, `in office`, or `in the
-office` independently emits no mandatory evidence. A `home office` occurrence never satisfies an attendance
-obligation merely because it contains `office`.
+office` independently emits no mandatory evidence. Bare `work`, `working`, or `report` does not satisfy condition 5;
+`report` qualifies only as part of one of the three exact presence-linking sequences above. A `home office`
+occurrence never satisfies an attendance obligation merely because it contains `office`.
 
 Apply the remote-arrangement rule in this exact order:
 
@@ -443,7 +448,8 @@ The persisted location object has `country_code` and a generic `region`, but no 
 Therefore this policy recognizes no US state/DC postal abbreviation from structured `region`, free-text location
 labels, title, or description, and adds no field.
 
-Free-text explicit US inclusion is limited to exactly these normalized sequences or templates:
+Free-text explicit US inclusion is limited to exactly these normalized sequences or templates, plus a
+manifest-listed US item inside a named-scope list governed by one of the closed templates defined below:
 
 ```text
 usa, united states, united states of america, us based, based in the us,
@@ -469,12 +475,31 @@ does not also supply inclusion from its contained `united states`; a separate no
 `Remote in the US, but not available to US applicants` still supplies both kinds of evidence and is unknown.
 
 Broad evidence is `global`, `worldwide`, `anywhere`, `North America`, or
-`Americas`. Named non-US-only free-text evidence is:
+`Americas`. Manifest-listed named sequences available to the named-scope grammar are the US sequences `US`, `the
+US`, `USA`, `the USA`, `United States`, `the United States`, `United States of America`, and `the United States of
+America`, plus these named non-US sequences:
 
 ```text
-EMEA, EU, European Union, Europe, UK, United Kingdom, APAC, Asia Pacific,
-LATAM, Latin America, Canada, Australia, New Zealand, India
+EMEA, EU, the EU, European Union, the European Union, Europe,
+UK, the UK, United Kingdom, the United Kingdom,
+APAC, Asia Pacific, LATAM, Latin America,
+Canada, Australia, New Zealand, India
 ```
+
+The occurrence of a named non-US sequence is scope evidence only when it is an item in a named-scope list governed
+by one of these closed templates:
+
+1. remote scope: `remote` followed by `in`, `within`, `across`, or `throughout`, then a named-scope list;
+2. candidate scope: `open` or `available`, followed by `to`, then `candidates` or `applicants`, then `in` or `within`,
+   then a named-scope list; or
+3. residence requirement: `candidates`, `applicants`, or `this role`, followed by `must` or `required to`, then
+   `be located`, `be based`, or `reside`, then `in` or `within`, then a named-scope list.
+
+A named-scope list contains one or more of the manifest-listed named sequences above and nothing else. Multiple
+items may be joined only by a comma, a semicolon, a slash, `and`, or `or`; a comma, semicolon, or slash may be
+followed by `and` or `or`. Matching consumes the complete maximal list immediately following the template, and each
+item contributes its manifest-owned US-inclusion or named-non-US scope category. Company, employee, office, team,
+customer, market, and collaboration locations outside these templates contribute no named-scope evidence.
 
 Recognized two-letter non-US ISO country codes count only through structured `country_code`; no general country-code
 or state-code lookup is performed on free text. The closed manifest-listed `EU` and `UK` sequences remain named
@@ -508,6 +533,9 @@ Required exact tests are:
 - `Remote worldwide, excluding us from consideration` does not match an exclusion template merely because it
   contains pronoun `us`, so its broad scope passes;
 - `Remote in the US and Canada` passes;
+- `Collaborate with our team in Canada` contributes no geography evidence;
+- `Support customers in India` contributes no geography evidence;
+- `Our company is based in the United Kingdom` contributes no geography evidence;
 - `Remote in the US, but not available to US applicants` is unknown;
 - `Remote across Europe and Canada` rejects;
 - `Remote, excluding Alaska` produces no country rejection;
@@ -521,23 +549,50 @@ scoring. Add no candidate comparison, geocoder, legal interpretation, reason, un
 
 ### 5. Active security clearance
 
-Reject only a definite currently held active-clearance requirement. Exact
-requirement patterns are `active security clearance`, `current security
-clearance`, `active secret clearance`, `current secret clearance`,
-`active top secret clearance`, `current top secret clearance`,
-`active ts sci clearance`, and `current ts sci clearance`, plus `must possess`,
-`requires`, or `required` followed by one of those recognized clearance
-phrases.
+Reject only a definite currently held active-clearance requirement. The eight recognized clearance phrases are:
 
-Exact no-requirement patterns `no security clearance required`,
-`security clearance not required`, and `no active clearance required` produce
-`active_clearance_not_required`. These obtainability phrases do not reject:
-`ability to obtain`, `able to obtain`, `eligible to obtain`,
-`willing to obtain`, `must be able to obtain`, and `can obtain`.
+```text
+active security clearance, current security clearance,
+active secret clearance, current secret clearance,
+active top secret clearance, current top secret clearance,
+active ts sci clearance, current ts sci clearance
+```
 
-Requirement conflicting with no-requirement or obtainability evidence produces `clearance_ambiguous`; no approved
-conclusion produces `clearance_not_stated`. Public trust, background checks, export controls, citizenship,
-residency, sponsorship, and work authorization do not reject.
+A recognized clearance phrase alone never establishes a requirement. It is requirement evidence only inside one of
+these closed actual-obligation templates:
+
+1. `must possess`, `must hold`, or `must have`, followed by a recognized clearance phrase;
+2. `requires`, followed by a recognized clearance phrase;
+3. `required to possess`, `required to hold`, or `required to have`, followed by a recognized clearance phrase; or
+4. a recognized clearance phrase followed by `is required` or `required`.
+
+The closed no-requirement templates are `no` followed by a recognized clearance phrase and then `required` or
+`is required`; a recognized clearance phrase followed by `not required` or `is not required`; and `does not
+require` followed by a recognized clearance phrase. The closed preference templates are a recognized clearance
+phrase followed by `preferred` or `is preferred`. The closed obtainability templates are `ability to obtain`,
+`able to obtain`, `eligible to obtain`, `willing to obtain`, `must be able to obtain`, or `can obtain`, followed by
+a recognized clearance phrase.
+
+For every prefix trigger followed by a recognized clearance phrase—obligation templates 1–3, the no-requirement
+triggers `no` and `does not require`, and all six obtainability triggers—the trigger fragment's final token is
+followed either immediately by the recognized clearance phrase's first token or by exactly one intervening
+determiner token from the closed set `a`, `an`, or `the`. This is an exact, manifest-owned token-adjacency rule: no
+other intervening token is permitted, and the matcher must not search across an unbounded gap elsewhere in the same
+sentence.
+
+Every template in which the recognized clearance phrase precedes a fixed suffix retains exact template adjacency:
+obligation template 4, the no-requirement suffixes `required`, `is required`, `not required`, and `is not required`,
+and the preference suffixes `preferred` and `is preferred` permit no unspecified filler between the recognized
+clearance phrase and that suffix or within the suffix. The prefix-trigger adjacency rule above does not otherwise
+change these fixed suffixes.
+
+Each no-requirement, preference, or obtainability template owns its complete matched span, and a recognized
+clearance phrase contained inside that span cannot also contribute requirement evidence. No-requirement-only,
+preference-only, and obtainability-only cases pass with `active_clearance_not_required`. Independent,
+non-overlapping actual-requirement and no-requirement, preference, or obtainability evidence produces
+`clearance_ambiguous`. An actual-obligation template without such conflicting evidence rejects with
+`active_clearance_required`; no approved conclusion produces `clearance_not_stated`. Public trust, background
+checks, export controls, citizenship, residency, sponsorship, and work authorization do not reject.
 
 ### 6. Unknown semantics
 
@@ -667,10 +722,16 @@ version/hash on execution and replay. Unknown versions or disagreement raise
 The manifest freezes every phrase, rule, normalization, field ownership, evidence mapping, four-code unknown
 behavior, threshold, structured field interpretation, decision 2 title-only and compound-discipline boundaries,
 decision 3 positive and denial inventories, the closed mandatory-attendance sequence inventory, weekly-template
-token-distance conditions, remote span ownership and precedence, and decision 4 phrase inventory, code-source
-restriction, exclusion-span ownership, and precedence matrix. The manifest contains no removed legacy enum or
-evidence value. Any change requires a new policy version. Add no policy table, environment phrase list, mutable
-global setting, or fallback version.
+token-distance and closed-obligation conditions, remote span ownership and precedence, decision 4 phrase inventory,
+code-source restriction, named-scope sequence inventory, list separators and three closed scope templates,
+exclusion-span ownership and precedence matrix, and decision 5 recognized-phrase inventory, obligation,
+no-requirement, preference, and obtainability templates. For obligation templates 1–3 and every no-requirement,
+preference, and obtainability template, the manifest explicitly owns each applicable trigger-to-phrase and
+phrase-to-suffix adjacency edge: each prefix-trigger edge owns the zero-or-one-token rule and closed permitted
+determiner set `a`, `an`, and `the`, and each fixed-suffix edge owns exact adjacency with no filler. The manifest
+also owns clearance span ownership and precedence and contains no removed legacy enum or evidence value. Any change
+requires a new policy version. Add no policy table, environment phrase list, mutable global setting, or fallback
+version.
 
 ## Relationship to later scoring
 
@@ -738,6 +799,10 @@ Remote-evidence tests include:
 
 - `Employees are expected to work in the office three days per week` rejects;
 - `Must be onsite 2 days a week` rejects;
+- `You will work with the New York office three days per week` does not reject;
+- `Team members typically work from the office two days a week, but this role is fully remote` does not reject;
+- `Expected to work from the office three days per week` rejects;
+- `Must be onsite two days a week` rejects;
 - `Hybrid role` rejects;
 - structured `workplace_type="hybrid"` rejects;
 - `Must work from the office` rejects;
@@ -768,6 +833,44 @@ Remote-evidence tests include:
 - an approved weekly-attendance template plus positive remote text still rejects;
 - positive remote evidence without denial or attendance evidence passes; and
 - unresolved remote evidence emits the existing `remote_arrangement_unresolved`.
+
+Clearance tests include:
+
+- `An active security clearance is preferred` completes with `active_clearance_not_required` and does not reject;
+- `No active security clearance is required` completes with `active_clearance_not_required` and does not reject;
+- `Ability to obtain an active security clearance` completes with `active_clearance_not_required`, does not reject,
+  and is not ambiguous;
+- parameterized coverage crosses every one of the eight recognized clearance phrases with every one of `ability to
+  obtain`, `able to obtain`, `eligible to obtain`, `willing to obtain`, `must be able to obtain`, and `can obtain`,
+  and every case deterministically completes with `active_clearance_not_required` without rejection or ambiguity;
+- `Must possess active security clearance` rejects with `active_clearance_required`, proving a zero-gap trigger;
+- `Must possess an active security clearance` rejects with `active_clearance_required`, proving the permitted single
+  intervening determiner;
+- `Does not require active security clearance` and `Does not require an active security clearance` prove,
+  respectively, a zero-gap and permitted single-determiner no-requirement prefix trigger;
+- `Can obtain active security clearance` and `Ability to obtain an active security clearance` prove, respectively,
+  a zero-gap and permitted single-determiner obtainability prefix trigger;
+- `This role requires a current secret clearance` rejects with `active_clearance_required`;
+- `Required to hold an active top secret clearance` rejects with `active_clearance_required`;
+- `Requires strong communication skills and a current secret clearance` does not match an actual-obligation template
+  and, absent other evidence, completes with `clearance_not_stated`;
+- `Requires possession of active security clearance`, with exactly two intervening tokens between the trigger and
+  recognized phrase, does not match an actual-obligation template and, absent other evidence, completes with
+  `clearance_not_stated`;
+- `Does not require prior possession of active security clearance` has two or more intervening non-determiner tokens,
+  does not match a no-requirement template, and, absent other evidence, completes with `clearance_not_stated`;
+- `Active security clearance would be strongly preferred` has two or more intervening unrelated tokens, does not
+  match a preference template, and, absent other evidence, completes with `clearance_not_stated`;
+- `Ability to obtain within six months active security clearance` has two or more intervening unrelated tokens, does
+  not match an obtainability template, and, absent other evidence, completes with `clearance_not_stated`;
+- `A current ts sci clearance is required` remains a rejection with `active_clearance_required`; these positive
+  examples cover every approved actual-obligation template class; and
+- `Must possess an active security clearance. No active security clearance is required for this role.` has
+  independent, non-overlapping requirement evidence and no-requirement evidence; the no-requirement span suppresses
+  only its contained clearance phrase, the separate requirement evidence remains valid, and the combined outcome is
+  `clearance_ambiguous`, not rejection and not `active_clearance_not_required`;
+- the existing case with independent, non-overlapping actual-requirement plus suppression evidence still completes
+  with `clearance_ambiguous`.
 
 Engine-ownership tests call the service, prove its connection/result resources closed, reuse the same Engine
 successfully, and prove `engine.dispose()` was not called. Patch network/model entry points to fail. PostgreSQL 16 +
@@ -800,8 +903,10 @@ geocoding, and legal interpretation remain out of scope.
       only to the exact same-sentence product-owner/business-analyst compound branch and collaboration language does
       not reject.
 - [ ] Remote evidence implements every exact arrangement, closed mandatory-attendance sequence, and five-condition
-      weekly template; no open-ended attendance matcher exists, bare workplace/location words do not independently
-      reject, and home-office wording cannot produce attendance evidence merely because it contains `office`.
+      weekly template; its obligation condition admits only the four approved obligation tokens or an exact
+      presence-linking `report` sequence, bare `work`, `working`, and `report` do not satisfy that condition, no
+      open-ended attendance matcher exists, bare workplace/location words do not independently reject, and
+      home-office wording cannot produce attendance evidence merely because it contains `office`.
 - [ ] Remote denial implements the exact inventory and precedence; each denial owns its span, contained positive
       sequences are suppressed, separate positive evidence conflicts to unknown, and stronger mandatory evidence
       still rejects.
@@ -810,8 +915,19 @@ geocoding, and legal interpretation remain out of scope.
       and exclusion occurrences remain conflicting evidence.
 - [ ] Only structured `country_code` supplies ISO codes; free text supplies no inferred two-letter country or state/DC
       code, malformed or absent codes follow the unknown contract, and no structured state-code field is invented.
+- [ ] A named non-US sequence contributes free-text scope evidence only as an item in a complete named-scope list
+      owned by one of the three closed remote, candidate, or residence templates; the manifest freezes the sequences
+      and list separators, and company, employee, office, team, customer, market, and collaboration locations outside
+      those templates contribute nothing.
 - [ ] State-only exclusions remain later scoring; geography uses no candidate comparison or free-text state-code
       inference.
+- [ ] Clearance recognizes exactly eight phrases and rejects only through one of the four closed actual-obligation
+      template classes; every prefix trigger in obligation templates 1–3, no-requirement templates, and all six
+      obtainability templates permits only zero intervening tokens or exactly one manifest-owned determiner token
+      from `a`, `an`, or `the`, with no other or unbounded same-sentence gap; all recognized-phrase-first fixed
+      suffixes retain exact adjacency with no unspecified filler; no-requirement, preference, and obtainability
+      templates own their spans and alone pass with `active_clearance_not_required`, while independent conflicting
+      evidence is `clearance_ambiguous`.
 - [ ] Already-actioned evaluation uses the current schema and follows every digest state/version rule above.
 - [ ] The absent future application branch causes no rejection, unknown, error, lock, FK, or migration.
 - [ ] `0004_hard_filter_evaluation` creates only the approved table, constraints, and indexes with a reversible downgrade.
