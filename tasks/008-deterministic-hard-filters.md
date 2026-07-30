@@ -213,10 +213,37 @@ The result contains no content, names, labels, URLs, external IDs, matched phras
 
 ## Normalization and deterministic matching
 
-For immutable title, description, and location strings, require a string or use its missing rule; apply NFKC and
-`casefold()`; map `’`, `‘`, `ʼ`, and `＇` to ASCII `'`; treat whitespace, Unicode dashes, `/`, `\`, `_`, and other
-punctuation as boundaries except apostrophes between letters; form maximal Unicode Letter-or-Number tokens; compare
-ordered token sequences only.
+For immutable title, description, and location strings, require a string or use its missing rule, then perform this
+closed pipeline in order:
+
+1. normalize CRLF and CR to LF;
+2. before NFKC or punctuation flattening, scan the field left to right for boundaries. A paragraph boundary is an LF
+   followed by zero or more non-LF Unicode whitespace characters and another LF; consume the complete maximal run.
+   The closed sentence-terminator code-point inventory is ASCII `.`, `!`, and `?` plus Unicode `。`, `！`, and `？`;
+   consume a maximal consecutive run of those code points as one sentence boundary. Paragraph boundaries take
+   precedence. Each boundary closes the current segment; discard empty segments and number non-empty segments from
+   zero in encounter order. There is no abbreviation, decimal, initial, ellipsis, quotation, capitalization, locale,
+   or language exception;
+3. independently within each segment, apply NFKC and `casefold()`; map `’`, `‘`, `ʼ`, and `＇` to ASCII `'`; treat
+   whitespace, Unicode dashes, `/`, `\`, `_`, and all other punctuation as token boundaries except apostrophes
+   between letters; form maximal Unicode Letter-or-Number tokens; and
+4. compare ordered token sequences only.
+
+This ordering preserves sentence identity even when NFKC would otherwise fold a terminator. A comma, colon,
+semicolon, slash, dash, single LF, or other punctuation is a token boundary but not a sentence boundary.
+
+Each normalized token is represented in memory as its token value plus immutable metadata
+`(field_kind, field_ordinal, sentence_segment, token_ordinal)`. `field_kind` is `title`, `description`, or
+`location`; `field_ordinal` is zero for title and description and is the persisted location-array index for a
+location; `sentence_segment` is the segment number defined above; and `token_ordinal` is zero-based within that
+field occurrence. In addition, the scan classifies every original gap between adjacent tokens as exactly one of
+`whitespace`, `comma`, `semicolon`, `slash`, `other_punctuation`, `sentence_boundary`, or `paragraph_boundary`;
+sentence and paragraph categories take precedence over the other gap categories. This gap metadata is consulted
+only by grammars that explicitly own separators, currently the named-scope list grammar. It preserves the existing
+distinction between approved comma, semicolon, and slash separators and disallowed dash, whitespace-only, or other
+punctuation separators after tokenization. Sentence metadata is consulted only by rules that explicitly require
+same-sentence matching, currently the product-owner/business-analyst compound branch and the weekly-attendance
+template. All other matching continues to compare the same normalized token values and field boundaries as before.
 
 Never use unrestricted substrings. Hyphenated/slash compounds form separate tokens. There is no accent stripping,
 stemming, singularization, implicit abbreviation expansion, fuzzy/semantic matching, locale lookup, or taxonomy.
@@ -236,8 +263,13 @@ lives in the manifest. Content patterns may declare only immutable title, descri
 pattern declares which of those fields it may inspect. Generated regex uses escaped approved tokens and is tested
 against the token matcher.
 
-Every rule is independently decisive, runs without short-circuiting, and emits
-its reason at most once. No rule exists for sponsorship, general work
+All nine rules run without short-circuiting and emit their reason at most
+once. Rules are independently decisive except for the geography rule's single
+manifest-owned applicability dependency on the completed remote-reality
+outcome: geography may reject only when remote reality completed
+`pass`/`remote_permitted`. Remote reality is completed first for this
+dependency, but the remaining rules and evidence collectors do not depend on
+discovery order and still run exactly once. No rule exists for sponsorship, general work
 authorization, citizenship, residency, compensation, employment type,
 contract/temporary status, company activity, endpoint kind, or source kind.
 
@@ -268,7 +300,7 @@ The discipline rule always completes as `pass` with `excluded_discipline_absent`
 persisted-input error. For remote reality, a missing, malformed, or unrecognized structured
 `workplace_type` and text that satisfies no complete positive, denial, or mandatory template contribute no definite
 evidence; unresolved results use `remote_arrangement_unresolved`. For geography, a missing, malformed, or
-unrecognized structured `country_code`, including a value outside the recognized ISO country-code inventory,
+unrecognized structured `country_code`, including a value outside the manifest's closed assigned-code inventory,
 contributes no definite evidence. Absent other decisive geography evidence, the result is
 `remote_geography_unresolved`.
 
@@ -298,6 +330,12 @@ Reason, outcome, and unknown arrays use their defined orders. Each outcome objec
 `status` in lexical order. `result_hash` hashes this JSON. Replay validates every identity field, JSON shape,
 projection, hash, and result; persisted output containing any removed legacy discipline unknown or evidence value is
 invalid, and any disagreement raises the closed conflict error.
+
+Normalized tokens, sentence segments, and gap metadata are deterministic derived evaluation state, not new provider
+input. They are never added to canonical input JSON, persisted output, the provider payload, or a schema column.
+Canonical input remains anchored to the exact immutable posting-version content hash. The complete normalization
+algorithm, terminator and gap-category inventories, metadata representation, field ownership, and each rule allowed
+to consult the metadata are literal manifest content and therefore participate in `policy_manifest_hash`.
 
 ## Approved decisions
 
@@ -338,10 +376,13 @@ Description text is not searched for those five sequences. Collaboration phrases
 design and sales engineering` or `support product marketing launches` therefore do not reject an otherwise valid
 management title.
 
-The special product-owner-as-business-analyst branch rejects only when either normalized title contains both exact
-sequences `product owner` and `business analyst`, or one normalized description sentence contains both exact
-sequences. The description is read for this compound branch only; when usable description text is unavailable, that
-branch contributes nothing. The sequences in different description sentences do not combine. Bare `ba`,
+The special product-owner-as-business-analyst branch rejects only when one normalized title sentence segment or one
+normalized description sentence segment contains both exact sequences `product owner` and `business analyst`. In
+either field, both sequences must have the same `field_kind`, `field_ordinal`, and `sentence_segment`; their order
+and intervening same-segment tokens do not matter. Thus `Product owner, business analyst` may satisfy the branch,
+while `Product owner. Business analyst` does not. The description is read for this compound branch only; when usable
+description text is unavailable, that branch contributes nothing. The sequences never combine across fields,
+sentence segments, or paragraph boundaries. Bare `ba`,
 requirements gathering, backlog ownership, stakeholder work, agile terminology, or collaboration does not imply
 either sequence or the compound branch. A role may pass the title-family rule and independently reject discipline.
 
@@ -441,13 +482,52 @@ contained inside a denial span never creates a conflict.
 
 ### 4. Non-US geography
 
-Apply this exact order: (1) determine positive remote evidence under decision 3; (2) collect explicit US inclusion;
-(3) collect explicit US exclusion; (4) collect broad worldwide/international evidence; (5) collect recognized
-non-US-only scopes; (6) apply the closed matrix. Mixed structured/body evidence uses the same precedence.
+Apply this exact order: (1) complete the remote-reality rule under decision 3; (2) set positive remote evidence true
+if and only if that completed outcome is `pass` with evidence `remote_permitted`; (3) collect explicit US inclusion;
+(4) collect explicit US exclusion; (5) collect scoped broad worldwide/international evidence; (6) collect recognized
+non-US-only scopes; and (7) apply the closed matrix and remote-applicability gate below. Mixed structured/body
+evidence uses the same precedence. Evidence collection never short-circuits because of the remote outcome.
 
 Two-letter ISO country codes are interpreted only from the existing dedicated structured `country_code` field, after
-case normalization. Structured `country_code == "US"` is explicit US inclusion; any other recognized ISO country
-code is non-US-only scope evidence. A malformed or unrecognized structured code contributes no definite conclusion.
+case normalization. Recognition is membership in this exact closed, lexically ordered manifest literal: the 249 ISO
+3166-1 alpha-2 codes assigned for this policy version.
+
+```text
+AD, AE, AF, AG, AI, AL, AM, AO, AQ, AR, AS, AT, AU, AW, AX, AZ,
+BA, BB, BD, BE, BF, BG, BH, BI, BJ, BL, BM, BN, BO, BQ, BR, BS, BT, BV, BW, BY, BZ,
+CA, CC, CD, CF, CG, CH, CI, CK, CL, CM, CN, CO, CR, CU, CV, CW, CX, CY, CZ,
+DE, DJ, DK, DM, DO, DZ,
+EC, EE, EG, EH, ER, ES, ET,
+FI, FJ, FK, FM, FO, FR,
+GA, GB, GD, GE, GF, GG, GH, GI, GL, GM, GN, GP, GQ, GR, GS, GT, GU, GW, GY,
+HK, HM, HN, HR, HT, HU,
+ID, IE, IL, IM, IN, IO, IQ, IR, IS, IT,
+JE, JM, JO, JP,
+KE, KG, KH, KI, KM, KN, KP, KR, KW, KY, KZ,
+LA, LB, LC, LI, LK, LR, LS, LT, LU, LV, LY,
+MA, MC, MD, ME, MF, MG, MH, MK, ML, MM, MN, MO, MP, MQ, MR, MS, MT, MU, MV, MW, MX, MY, MZ,
+NA, NC, NE, NF, NG, NI, NL, NO, NP, NR, NU, NZ,
+OM,
+PA, PE, PF, PG, PH, PK, PL, PM, PN, PR, PS, PT, PW, PY,
+QA,
+RE, RO, RS, RU, RW,
+SA, SB, SC, SD, SE, SG, SH, SI, SJ, SK, SL, SM, SN, SO, SR, SS, ST, SV, SX, SY, SZ,
+TC, TD, TF, TG, TH, TJ, TK, TL, TM, TN, TO, TR, TT, TV, TW, TZ,
+UA, UG, UM, US, UY, UZ,
+VA, VC, VE, VG, VI, VN, VU,
+WF, WS,
+YE, YT,
+ZA, ZM, ZW
+```
+
+The evaluator must not import, query, or defer membership to an ISO package, locale database, operating-system
+table, network source, provider taxonomy, or implementation-selected library. Structured `country_code == "US"` is
+explicit US inclusion; any other member of the literal inventory is non-US-only scope evidence. Any value outside
+the literal inventory, including ISO-shaped `ZZ`, is unrecognized and contributes no definite geography evidence.
+A malformed or unrecognized structured code follows the approved unresolved behavior absent other evidence. This
+evaluation-only recognition rule does not change Task 005 ingestion: an adapter still accepts and stores an
+uppercase two-ASCII-letter ISO-shaped value without membership validation or repair.
+
 The persisted location object has `country_code` and a generic `region`, but no dedicated state/region-code field.
 Therefore this policy recognizes no US state/DC postal abbreviation from structured `region`, free-text location
 labels, title, or description, and adds no field.
@@ -478,8 +558,29 @@ An approved exclusion template owns its matched token span. Thus `except the Uni
 does not also supply inclusion from its contained `united states`; a separate non-overlapping inclusion such as
 `Remote in the US, but not available to US applicants` still supplies both kinds of evidence and is unknown.
 
-Broad evidence is `global`, `worldwide`, `anywhere`, `North America`, or
-`Americas`. Manifest-listed named sequences available to the named-scope grammar are the US sequences `US`, `the
+Broad sequences are exactly `global`, `globally`, `worldwide`, `anywhere`, `North America`, and `Americas`. A broad
+sequence contributes evidence only as the final item owned by one of these closed, same-field, same-sentence
+templates:
+
+1. remote-role scope: one exact prefix `remote`, `remote role`, `remote position`, `remote job`, `this role is
+   remote`, `this position is remote`, or `this job is remote`, followed by zero connector tokens or exactly one
+   connector token from `in`, `within`, `across`, `throughout`, or `from`, followed by one broad sequence;
+2. applicant opening: `open` or `available`, followed by `to`, then `candidates` or `applicants`, followed by zero
+   connector tokens or exactly one connector token from `in`, `within`, `across`, `throughout`, or `from`, followed
+   by one broad sequence; or
+3. applicant eligibility: `candidates` or `applicants`, followed by `may`, `can`, or `must`, then `be located`, `be
+   based`, `reside`, or `apply`, followed by zero connector tokens or exactly one connector token from `in`,
+   `within`, `across`, `throughout`, or `from`, followed by one broad sequence.
+
+Every adjacency above is exact. The matched template owns the complete span from its first prefix token through the
+broad sequence's final token; matching does not skip filler, cross a field, sentence segment, or paragraph boundary,
+or combine a prefix with a broad occurrence outside that span. `Remote worldwide` and `Open to applicants
+worldwide` supply scoped broad evidence. `Join our global company`, `collaborate with teams worldwide`, `serve
+global customers`, and `grow in global markets` do not match any template and supply no geography evidence.
+Organizational reach and the location of a company, coworker, employee, office, team, customer, or market never
+imply applicant or role geography.
+
+Manifest-listed named sequences available to the named-scope grammar are the US sequences `US`, `the
 US`, `USA`, `the USA`, `United States`, `the United States`, `United States of America`, and `the United States of
 America`, plus these named non-US sequences:
 
@@ -514,14 +615,18 @@ contextual template above.
 | Evidence | Geography outcome |
 | --- | --- |
 | explicit US inclusion, no explicit exclusion | pass: `us_not_excluded` |
-| explicit US exclusion, no explicit inclusion | reject: `remote_scope_excludes_us` |
+| explicit US exclusion, no explicit inclusion, and positive remote evidence | reject: `remote_scope_excludes_us` |
 | explicit US inclusion and exclusion | unknown: `remote_geography_unresolved` |
 | broad evidence, no explicit exclusion | pass: `us_not_excluded` |
-| broad evidence plus explicit exclusion, no explicit inclusion | reject: `remote_scope_excludes_us` |
-| every explicit scope is recognized non-US-only | reject: `remote_scope_excludes_us` |
+| broad evidence plus explicit exclusion, no explicit inclusion, and positive remote evidence | reject: `remote_scope_excludes_us` |
+| every explicit scope is recognized non-US-only, and positive remote evidence | reject: `remote_scope_excludes_us` |
+| any otherwise-rejecting exclusion or non-US-only row without positive remote evidence | unknown: `remote_geography_unresolved` |
 | otherwise unscoped, contradictory, malformed, or unrecognized | unknown: `remote_geography_unresolved` |
 
 Generic broad scope never overrides explicit exclusion, and explicit inclusion never silently overrides exclusion.
+Only a completed remote-reality `pass` with `remote_permitted` makes a geography-rejection row applicable. A remote
+`reject` or `unknown` can therefore coexist only with geography `pass` or `unknown`, never `geo_excluded`; this
+dependency changes no canonical reason order and adds no discovery-order dependence. All nine rules still complete.
 Required exact tests are:
 
 - `Join us in building the platform` does not establish US eligibility;
@@ -531,12 +636,18 @@ Required exact tests are:
 - free-text `CA` alone identifies neither California nor Canada;
 - structured `country_code="US"` is explicit US inclusion;
 - structured `country_code="IN"` is non-US-only scope evidence;
+- representative first, middle, and last assigned inventory members are recognized, while `ZZ` is unrecognized;
 - `Remote in the US` is explicit US inclusion;
 - `Remote worldwide` passes;
+- `Open to applicants worldwide` supplies scoped broad evidence and passes;
 - `Remote worldwide, except the United States` rejects;
 - `Remote worldwide, excluding us from consideration` does not match an exclusion template merely because it
   contains pronoun `us`, so its broad scope passes;
 - `Remote in the US and Canada` passes;
+- `Join our global company` contributes no geography evidence;
+- `Collaborate with teams worldwide` contributes no geography evidence;
+- `Serve global customers` contributes no geography evidence;
+- `Grow in global markets` contributes no geography evidence;
 - `Collaborate with our team in Canada` contributes no geography evidence;
 - `Support customers in India` contributes no geography evidence;
 - `Our company is based in the United Kingdom` contributes no geography evidence;
@@ -545,8 +656,13 @@ Required exact tests are:
 - `Remote, excluding Alaska` produces no country rejection;
 - structured remote US plus body `excluding the United States` is unknown;
 - structured remote CA-only scope rejects;
+- structured `workplace_type="on-site"` plus structured `country_code="CA"` rejects only `not_remote`; geography is
+  unknown with `remote_geography_unresolved` and does not emit `geo_excluded`;
+- unresolved remote arrangement plus structured `country_code="CA"` leaves geography unknown and does not emit
+  `geo_excluded`;
 - an unscoped remote role is unknown; and
-- malformed or absent structured codes fall through to the approved unknown behavior when no other evidence decides.
+- malformed, absent, or unrecognized structured codes, including `ZZ`, fall through to the approved unknown behavior
+  when no other evidence decides.
 
 `excluding Alaska`, `excluding AK`, `excluding certain states`, and other state-only restrictions remain deep
 scoring. Add no candidate comparison, geocoder, legal interpretation, reason, unknown, status, or evidence value.
@@ -799,10 +915,14 @@ version/hash on execution and replay. Unknown versions or disagreement raise
 
 The manifest freezes every phrase, rule, normalization, field ownership, evidence mapping, four-code unknown
 behavior, threshold, structured field interpretation, decision 2 title-only and compound-discipline boundaries,
+the exact sentence/paragraph segmentation algorithm, six sentence terminators, gap categories, token-metadata
+representation and limited consumers,
 decision 3 positive and denial inventories, the closed mandatory-attendance sequence inventory, weekly-template
 token-distance and closed-obligation conditions, remote span ownership and precedence, decision 4 phrase inventory,
-code-source restriction, named-scope sequence inventory, list separators and three closed scope templates,
-exclusion-span ownership and precedence matrix, and decision 5 recognized-phrase inventory, obligation,
+the literal 249-member assigned country-code inventory and code-source restriction, broad-scope sequence inventory
+and three broad templates, named-scope sequence inventory, separator grammar and three named-scope templates,
+exclusion-span ownership, the remote-applicability gate, and the precedence matrix, and decision 5
+recognized-phrase inventory, obligation,
 no-requirement, preference, and obtainability templates. For obligation templates 1–3 and every no-requirement,
 preference, and obtainability template, the manifest explicitly owns each applicable trigger-to-phrase and
 phrase-to-suffix adjacency edge: each prefix-trigger edge owns the zero-or-one-token rule and closed permitted
@@ -868,7 +988,15 @@ branch and adversarial example above, and these discipline cases:
 - description-only `work closely with product marketing` does not reject;
 - description-only `collaborate with sales engineers` does not reject;
 - one description sentence containing both `product owner` and `business analyst` rejects;
-- the two sequences in different description sentences do not trigger the compound branch;
+- comma-separated `Product owner, business analyst` in one description sentence segment rejects;
+- each approved sentence terminator `.`, `!`, `?`, `。`, `！`, and `？` between `Product owner` and `Business
+  analyst` creates distinct sentence segments and does not trigger the compound branch;
+- the two sequences separated by a paragraph boundary do not trigger the compound branch;
+- one sequence in title and the other in description, or sequences in two different fields or location elements, do
+  not trigger the compound branch;
+- normalized-token fixtures assert exact
+  `(field_kind, field_ordinal, sentence_segment, token_ordinal)` metadata and the deterministic distinction between a
+  single LF, a paragraph boundary, an approved terminator run, and non-terminating punctuation;
 - bare `BA` does not trigger the compound branch;
 - generic requirements, backlog, or agile language does not trigger the compound branch;
 - discipline pass uses `excluded_discipline_absent`;
@@ -876,6 +1004,41 @@ branch and adversarial example above, and these discipline cases:
 - unavailable usable description contributes nothing to the compound branch and emits no unknown;
 - replay rejects persisted output containing the removed legacy discipline-unknown value; and
 - the manifest contains no removed legacy value.
+
+Geography-specific deterministic tests include:
+
+- the manifest literal contains exactly 249 unique, lexically ordered uppercase two-letter assigned codes, including
+  representative first, middle, and last members plus `US`, and excludes `ZZ`;
+- evaluator membership is loaded only from that manifest literal; tests fail an attempted library/locale/network
+  lookup and prove installed ISO-library data cannot change recognition or `policy_manifest_hash`;
+- changing any literal inventory member changes `policy_manifest_hash`, while repeat canonicalization of the
+  unchanged manifest produces identical bytes and hash;
+- structured assigned non-US codes contribute non-US-only evidence, structured `US` contributes explicit inclusion,
+  and structured `ZZ` contributes no definite evidence and is unresolved absent other evidence;
+- Task 005 uppercase two-ASCII-letter ISO-shaped ingestion remains unchanged and stores `ZZ`; only Task 008
+  evaluation treats it as unrecognized;
+- scoped `Remote worldwide` and `Open to applicants worldwide` contribute broad US-including evidence;
+- `Join our global company`, `Collaborate with teams worldwide`, global-customer wording, and global-market wording
+  contribute no broad or US-including evidence and are unresolved absent other decisive evidence;
+- incidental named-region company, team, customer, and collaboration wording continues to contribute no geography
+  evidence, while all three named-scope templates and their separator grammar retain their existing positive and
+  negative coverage;
+- structured `workplace_type="remote"` plus structured `country_code="CA"` rejects geography with
+  `geo_excluded`;
+- structured `workplace_type="on-site"` plus structured `country_code="CA"` rejects remote reality with
+  `not_remote`, completes geography unknown with `remote_geography_unresolved`, and does not include
+  `geo_excluded`;
+- unresolved remote arrangement plus structured `country_code="CA"` completes both applicable unknowns and does not
+  include `geo_excluded`;
+- every full-matrix geography rejection is parameterized against remote `pass`, `reject`, and `unknown` outcomes to
+  prove only `pass`/`remote_permitted` permits `geo_excluded`; and
+- the resulting single- and multi-reason projections retain canonical `HardFilterReason` order and their exact
+  filter-stage score `reject_reasons`.
+
+Normalization/hash tests also prove sentence and gap metadata are derived only, are never added to canonical input
+or output or provider input, and that their complete manifest-owned algorithm changes
+`policy_manifest_hash` if edited. Existing named-scope separator tests must continue to distinguish `Europe /
+Canada` from `Europe - Canada` and `Europe Canada`.
 
 Remote-evidence tests include:
 
@@ -997,6 +1160,14 @@ geocoding, and legal interpretation remain out of scope.
 - [ ] The five adjacent-discipline sequences inspect title only; within the discipline rule, description contributes
       only to the exact same-sentence product-owner/business-analyst compound branch and collaboration language does
       not reject.
+- [ ] Normalization deterministically preserves field, field ordinal, sentence segment, token ordinal, and gap
+      category before punctuation flattening; the closed `.`, `!`, `?`, `。`, `！`, `？` terminators and paragraph
+      algorithm require same-field/same-sentence compound matching, permit comma-separated matching, and forbid
+      period-separated, other-terminator-separated, paragraph-separated, and cross-field matching without changing
+      unrelated token behavior.
+- [ ] Sentence and separator metadata are derived evaluation state only, never new persisted provider/canonical
+      input; their complete inventories, algorithm, representation, and permitted consumers are manifest-owned and
+      hash-stable.
 - [ ] Remote evidence implements every exact arrangement, closed mandatory-attendance sequence, and five-condition
       weekly template; its obligation condition admits only the four approved obligation tokens or an exact
       presence-linking `report` sequence, bare `work`, `working`, and `report` do not satisfy that condition, no
@@ -1006,6 +1177,14 @@ geocoding, and legal interpretation remain out of scope.
       sequences are suppressed, separate positive evidence conflicts to unknown, and stronger mandatory evidence
       still rejects.
 - [ ] Geography implements the closed inclusion/exclusion/broad/non-US precedence matrix and every exact phrase.
+- [ ] Geography recognizes structured country codes only through the manifest's literal, lexically ordered,
+      249-member assigned ISO 3166-1 alpha-2 inventory; `US` includes the US, other members are non-US-only evidence,
+      and values outside the set including `ZZ` contribute no definite evidence. No runtime library, OS, locale,
+      network, or provider inventory can vary membership, and the literal inventory participates in
+      `policy_manifest_hash` without changing Task 005 ISO-shaped ingestion.
+- [ ] Broad geography sequences contribute evidence only inside one of the three exact remote-role or
+      applicant-eligibility templates and their owned token spans; scoped worldwide applicant eligibility counts,
+      while global-company, worldwide-team, global-customer, and global-market contexts contribute no evidence.
 - [ ] A matched geography-exclusion span does not also emit a contained inclusion; separate non-overlapping inclusion
       and exclusion occurrences remain conflicting evidence.
 - [ ] Only structured `country_code` supplies ISO codes; free text supplies no inferred two-letter country or state/DC
@@ -1014,6 +1193,10 @@ geocoding, and legal interpretation remain out of scope.
       owned by one of the three closed remote, candidate, or residence templates; the manifest freezes the sequences
       and list separators, and company, employee, office, team, customer, market, and collaboration locations outside
       those templates contribute nothing.
+- [ ] Geography may emit `geo_excluded` only when remote reality completed `pass` with `remote_permitted`; remote CA
+      rejects geography, on-site CA produces `not_remote` but not `geo_excluded`, and unresolved-arrangement CA
+      leaves geography unknown. All nine rules still complete without short-circuiting, canonical reason order and
+      score projection are unchanged, and the explicit dependency has no discovery-order behavior.
 - [ ] State-only exclusions remain later scoring; geography uses no candidate comparison or free-text state-code
       inference.
 - [ ] Clearance recognizes exactly eight phrases and rejects only through one of the four closed actual-obligation
