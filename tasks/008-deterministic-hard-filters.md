@@ -37,8 +37,10 @@ The immutable evaluation identity is:
 
 - `posting.current_version_id` is the sole content selector and must identify a version owned by the posting;
   timestamp and row order never select content.
-- Immutable inputs are `posting_version.title`, `locations`, and `description_md`; never read `raw_payload`,
-  embeddings, or incidental fields.
+- Immutable inputs are `posting_version.title`, `locations`, and `description_md`; each persisted location contributes
+  exactly one free-text field, its `label`. `country_code` is structured geography evidence only,
+  `workplace_type` is structured remote-arrangement evidence only, and `region` and `city` are not Phase 1
+  hard-filter text evidence. Never read `raw_payload`, embeddings, or incidental fields.
 - The selected `posting_version.observed_in_run_id` is immutable provenance for the required filter-stage `score`
   projection. It is not a rule input and therefore is not added to canonical input JSON; it is selected and
   revalidated with the authoritative version before persistence.
@@ -234,16 +236,19 @@ semicolon, slash, dash, single LF, or other punctuation is a token boundary but 
 
 Each normalized token is represented in memory as its token value plus immutable metadata
 `(field_kind, field_ordinal, sentence_segment, token_ordinal)`. `field_kind` is `title`, `description`, or
-`location`; `field_ordinal` is zero for title and description and is the persisted location-array index for a
-location; `sentence_segment` is the segment number defined above; and `token_ordinal` is zero-based within that
-field occurrence. In addition, the scan classifies every original gap between adjacent tokens as exactly one of
+`location`; `field_ordinal` is zero for title and description and is the persisted location-array index for that
+location's `label`. Each label is a distinct field occurrence: matching never crosses between location labels or
+between a location label and title or description. `sentence_segment` is the segment number defined above; and
+`token_ordinal` is zero-based within that field occurrence. In addition, the scan classifies every original gap
+between adjacent tokens as exactly one of
 `whitespace`, `comma`, `semicolon`, `slash`, `other_punctuation`, `sentence_boundary`, or `paragraph_boundary`;
 sentence and paragraph categories take precedence over the other gap categories. This gap metadata is consulted
 only by grammars that explicitly own separators, currently the named-scope list grammar. It preserves the existing
 distinction between approved comma, semicolon, and slash separators and disallowed dash, whitespace-only, or other
 punctuation separators after tokenization. Sentence metadata is consulted only by rules that explicitly require
-same-sentence matching, currently the product-owner/business-analyst compound branch and the weekly-attendance
-template. All other matching continues to compare the same normalized token values and field boundaries as before.
+same-sentence matching: the product-owner/business-analyst compound branch, the weekly-attendance template, and the
+broad-scope and named-scope geography grammars. All other matching continues to compare the same normalized token
+values and field boundaries as before.
 
 Never use unrestricted substrings. Hyphenated/slash compounds form separate tokens. There is no accent stripping,
 stemming, singularization, implicit abbreviation expansion, fuzzy/semantic matching, locale lookup, or taxonomy.
@@ -259,9 +264,10 @@ inside that span does not independently match as requirement evidence, while sep
 remains independent.
 
 Every phrase, abbreviation, precedence, matched-span ownership rule, evidence mapping, and declared input field
-lives in the manifest. Content patterns may declare only immutable title, description, and locations, and every
-pattern declares which of those fields it may inspect. Generated regex uses escaped approved tokens and is tested
-against the token matcher.
+lives in the manifest. Content patterns may declare only immutable title, description, and location labels, and
+every pattern declares which of those fields it may inspect. `country_code` and `workplace_type` retain only their
+declared structured interpretations; `region` and `city` are not content-pattern inputs. Generated regex uses
+escaped approved tokens and is tested against the token matcher.
 
 All nine rules run without short-circuiting and emit their reason at most
 once. Rules are independently decisive except for the geography rule's single
@@ -454,7 +460,8 @@ A weekly-attendance template requires all five conditions in one normalized sent
 2. `day` or `days` within two tokens of that number;
 3. `per week`, `a week`, `each week`, or `weekly` within four tokens of the `day`/`days` token;
 4. `office`, `in office`, `in the office`, `onsite`, or `on site` within eight tokens, in either direction, of the
-   `day`/`days` token; and
+   `day`/`days` token, except that an `office` token belonging to a contiguous normalized `home office` span does
+   not satisfy this condition; and
 5. in that same sentence, at least one obligation token from the closed set `required`, `must`, `expected`, or
    `attendance`, or one exact presence-linking sequence `report to the office`, `report onsite`, or `report on site`.
 
@@ -462,7 +469,10 @@ If any condition is absent, the weekly template emits no `attendance_required`; 
 may still decide the rule. Bare `office`, `workplace`, `location`, `onsite`, `on site`, `in office`, or `in the
 office` independently emits no mandatory evidence. Bare `work`, `working`, or `report` does not satisfy condition 5;
 `report` qualifies only as part of one of the three exact presence-linking sequences above. A `home office`
-occurrence never satisfies an attendance obligation merely because it contains `office`.
+occurrence, including one embedded in `their home office` or `quiet home office`, never satisfies condition 4 merely
+because it contains `office`; a separate physical-office occurrence in the same sentence remains eligible for
+condition 4. This exclusion does not change structured hybrid/on-site or any other approved mandatory
+physical-attendance behavior.
 
 Apply the remote-arrangement rule in this exact order:
 
@@ -592,7 +602,7 @@ Canada, Australia, New Zealand, India
 ```
 
 The occurrence of a named non-US sequence is scope evidence only when it is an item in a named-scope list governed
-by one of these closed templates:
+by one of these closed, same-field, same-sentence templates:
 
 1. remote scope: `remote` followed by `in`, `within`, `across`, or `throughout`, then a named-scope list;
 2. candidate scope: `open` or `available`, followed by `to`, then `candidates` or `applicants`, then `in` or `within`,
@@ -916,7 +926,8 @@ version/hash on execution and replay. Unknown versions or disagreement raise
 The manifest freezes every phrase, rule, normalization, field ownership, evidence mapping, four-code unknown
 behavior, threshold, structured field interpretation, decision 2 title-only and compound-discipline boundaries,
 the exact sentence/paragraph segmentation algorithm, six sentence terminators, gap categories, token-metadata
-representation and limited consumers,
+representation, location-label-only text boundary, and limited consumers (the product-owner/business-analyst
+compound branch, weekly-attendance template, and broad-scope and named-scope geography grammars),
 decision 3 positive and denial inventories, the closed mandatory-attendance sequence inventory, weekly-template
 token-distance and closed-obligation conditions, remote span ownership and precedence, decision 4 phrase inventory,
 the literal 249-member assigned country-code inventory and code-source restriction, broad-scope sequence inventory
@@ -1040,6 +1051,18 @@ or output or provider input, and that their complete manifest-owned algorithm ch
 `policy_manifest_hash` if edited. Existing named-scope separator tests must continue to distinguish `Europe /
 Canada` from `Europe - Canada` and `Europe Canada`.
 
+Approved clarification coverage additionally proves:
+
+- with structured `workplace_type="remote"`, `Remote. Worldwide` does not cross a sentence boundary to match a
+  broad-scope geography template and remains geography-unresolved absent other decisive evidence;
+- with structured `workplace_type="remote"`, `Open to candidates in. Europe` does not cross a sentence boundary to
+  match a named-scope geography template and remains geography-unresolved absent other decisive evidence;
+- a location `label` of `Remote in the US` supplies one complete free-text location occurrence, while its matching
+  never crosses to another label or field;
+- `region` and `city` values alone supply no Phase 1 hard-filter free-text evidence; and
+- structured `country_code` and `workplace_type` continue to supply only their approved geography and
+  remote-arrangement evidence, respectively.
+
 Remote-evidence tests include:
 
 - `Employees are expected to work in the office three days per week` rejects;
@@ -1057,6 +1080,10 @@ Remote-evidence tests include:
 - `Must work from any approved location` does not match an attendance obligation;
 - `Must work from a quiet home office` does not match an attendance obligation;
 - `Must work from your home office` does not match an attendance obligation;
+- `Employees must work from their home office three days per week` does not trigger the weekly-attendance template;
+- `Employees must be in the office three days per week` triggers the weekly-attendance template;
+- `Employees must work from their home office three days per week and be in the office one day per week` triggers
+  the weekly-attendance template only through the separate physical-office occurrence;
 - bare `workplace` does not match an attendance obligation;
 - `30 days to set up your home office` does not reject;
 - `The office is open three days per week` does not reject through the weekly-attendance template;
@@ -1156,7 +1183,10 @@ geocoding, and legal interpretation remain out of scope.
 - [ ] Unknowns never reject, imply an opposite fact, or silently become passes; `wrong_discipline` cannot produce
       `unknown`, always completes with the approved pass or reject evidence, and unavailable description emits no
       unknown.
-- [ ] Only immutable version title, description, and locations supply content; mutable content projections are unread.
+- [ ] Only immutable version title, description, and location labels supply content; each label is a separate field
+      occurrence, matching never crosses label or field boundaries, `country_code` and `workplace_type` retain only
+      their structured evidence roles, `region` and `city` supply no Phase 1 hard-filter text evidence, and mutable
+      content projections are unread.
 - [ ] The five adjacent-discipline sequences inspect title only; within the discipline rule, description contributes
       only to the exact same-sentence product-owner/business-analyst compound branch and collaboration language does
       not reject.
@@ -1166,13 +1196,17 @@ geocoding, and legal interpretation remain out of scope.
       period-separated, other-terminator-separated, paragraph-separated, and cross-field matching without changing
       unrelated token behavior.
 - [ ] Sentence and separator metadata are derived evaluation state only, never new persisted provider/canonical
-      input; their complete inventories, algorithm, representation, and permitted consumers are manifest-owned and
-      hash-stable.
+      input; their complete inventories, algorithm, representation, and permitted consumers—the
+      product-owner/business-analyst compound branch, weekly-attendance template, and broad-scope and named-scope
+      geography grammars for sentence metadata, and the named-scope list grammar for gap metadata—are
+      manifest-owned and hash-stable.
 - [ ] Remote evidence implements every exact arrangement, closed mandatory-attendance sequence, and five-condition
       weekly template; its obligation condition admits only the four approved obligation tokens or an exact
       presence-linking `report` sequence, bare `work`, `working`, and `report` do not satisfy that condition, no
       open-ended attendance matcher exists, bare workplace/location words do not independently reject, and
-      home-office wording cannot produce attendance evidence merely because it contains `office`.
+      an `office` token in a contiguous normalized `home office` span cannot satisfy weekly condition 4, while a
+      separate physical-office occurrence remains eligible and home-office wording cannot otherwise produce
+      attendance evidence merely because it contains `office`.
 - [ ] Remote denial implements the exact inventory and precedence; each denial owns its span, contained positive
       sequences are suppressed, separate positive evidence conflicts to unknown, and stronger mandatory evidence
       still rejects.
