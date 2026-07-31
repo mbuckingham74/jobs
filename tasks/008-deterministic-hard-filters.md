@@ -546,7 +546,7 @@ Free-text explicit US inclusion is limited to exactly these normalized sequences
 manifest-listed US item inside a named-scope list governed by one of the closed templates defined below:
 
 ```text
-usa, united states, united states of america, us based, based in the us,
+usa, united states, united states of america,
 within the us, remote in the us, available in the us,
 open to candidates in the us, us only
 ```
@@ -646,6 +646,10 @@ Required exact tests are:
 - free-text `CA` alone identifies neither California nor Canada;
 - structured `country_code="US"` is explicit US inclusion;
 - structured `country_code="IN"` is non-US-only scope evidence;
+- `remote in the us`, `available in the us`, and `open to candidates in the us` remain explicit US inclusion, as do
+  approved US items within named-scope templates;
+- with `country_code=null`, `workplace_type="remote"`, and `description_md="US-based; not available to US applicants"`,
+  expected geography result: reject with `geo_excluded` / `remote_scope_excludes_us`;
 - representative first, middle, and last assigned inventory members are recognized, while `ZZ` is unrecognized;
 - `Remote in the US` is explicit US inclusion;
 - `Remote worldwide` passes;
