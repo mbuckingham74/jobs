@@ -360,10 +360,14 @@ technical delivery manager, product lead, program lead, delivery lead,
 product management, program management, technical program management, tpm
 ```
 
-`tpm` is a full token. A sequence may be surrounded by `senior`, `sr`, `principal`, `staff`, `lead`, `group`,
-`director`, `head`, `technical`, or `platform`; modifiers need not be stripped. Do not accept bare `pm`, partial
-tokens, inferred synonyms, fuzzy/semantic matches, or a family found only in description text. Thus
-`Director, Product Management` passes, while `Product Marketing Manager` does not match `product manager`.
+`tpm` is a full token. Scan the complete normalized title token stream: an exact approved sequence passes when it
+occurs contiguously anywhere in that stream, so tokens before or after the sequence do not matter. A sequence may be
+surrounded by `senior`, `sr`, `principal`, `staff`, `lead`, `group`, `director`, `head`, `technical`, or `platform`;
+modifiers need not be stripped and do not create additional title families. Thus `Director, Product Management`,
+`Marketing Director, Senior Group Product Manager`, and `Director Product Manager Technical Platform` pass because
+each contains a contiguous approved sequence; bare `Marketing Director` does not pass. Do not accept bare `pm`,
+partial tokens, inferred synonyms, fuzzy/semantic matches, or a family found only in description text. `Product
+Marketing Manager` does not match `product manager`.
 
 The seniority floor rejects full title tokens `intern`, `junior`, `associate`, `coordinator`, or `analyst`.
 Technical depth, software/platform relevance, industry fit, and résumé comparison belong to later scoring.
@@ -994,6 +998,8 @@ above; it adds no scoring service or score-table migration.
 Deterministic tests cover every rule/evidence triple, canonical/hash/error/privacy boundary, every geography matrix
 branch and adversarial example above, and these discipline cases:
 
+- title `Marketing Director, Senior Group Product Manager` passes via the contiguous `product manager` family;
+- title `Director Product Manager Technical Platform` passes via the contiguous `product manager` family;
 - title `Product Marketing Manager` rejects;
 - title `Product Design Manager` rejects;
 - title `Product Designer` rejects;
