@@ -7,7 +7,7 @@ the named constraints and indexes, and that no inline unnamed ``sa.ForeignKey``
 column is used.
 
 It additionally validates that the Alembic graph remains a single linear chain
-through the later ``0003_posting_current_version`` revision.
+through the later ``0004_hard_filter_evaluation`` revision.
 """
 
 from __future__ import annotations
@@ -61,6 +61,7 @@ PERMITTED_REVISIONS = {
     "0001_core_schema",
     "0002_resume_source_state",
     "0003_posting_current_version",
+    "0004_hard_filter_evaluation",
 }
 
 
@@ -286,13 +287,13 @@ def test_identity_column_is_by_default(revision_path: Path) -> None:
 # ------------------------------------------------------------------
 
 
-def test_exactly_three_revisions_are_permitted() -> None:
+def test_exactly_four_revisions_are_permitted() -> None:
     modules = _all_revision_modules()
     revisions = {m.revision for m, _ in modules}
     assert (
         revisions == PERMITTED_REVISIONS
     ), f"expected exactly {PERMITTED_REVISIONS}; found {revisions}"
-    assert len(modules) == 3, f"expected exactly three revisions; found {len(modules)}"
+    assert len(modules) == 4, f"expected exactly four revisions; found {len(modules)}"
 
 
 def test_single_linear_chain_with_one_head() -> None:
@@ -303,9 +304,10 @@ def test_single_linear_chain_with_one_head() -> None:
     heads = [rid for rid in by_id if rid not in {m.down_revision for m in by_id.values()}]
 
     assert roots == ["0001_core_schema"], roots
-    assert heads == ["0003_posting_current_version"], heads
+    assert heads == ["0004_hard_filter_evaluation"], heads
     assert by_id[REVISION_ID].down_revision == DOWN_REVISION  # type: ignore[attr-defined]
     assert by_id["0003_posting_current_version"].down_revision == REVISION_ID  # type: ignore[attr-defined]
+    assert by_id["0004_hard_filter_evaluation"].down_revision == "0003_posting_current_version"  # type: ignore[attr-defined]
 
 
 def test_0001_core_schema_chain_invariants_preserved() -> None:
